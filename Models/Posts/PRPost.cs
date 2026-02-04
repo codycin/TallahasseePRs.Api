@@ -1,4 +1,7 @@
-﻿namespace TallahasseePRs.Api.Models
+﻿using TallahasseePRs.Api.Models.Enums;
+using TallahasseePRs.Api.Models.Users;
+
+namespace TallahasseePRs.Api.Models.Posts
 {
     public class PRPost
     {

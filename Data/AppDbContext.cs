@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Runtime.Intrinsics.Arm;
 using TallahasseePRs.Api.Models;
+using TallahasseePRs.Api.Models.Notifications;
+using TallahasseePRs.Api.Models.Posts;
+using TallahasseePRs.Api.Models.Users;
 
 namespace TallahasseePRs.Api.Data;
 

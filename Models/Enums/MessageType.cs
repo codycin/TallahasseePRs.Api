@@ -1,4 +1,4 @@
-﻿namespace TallahasseePRs.Api.Models
+﻿namespace TallahasseePRs.Api.Models.Enums
 {
     public enum MessageType
     {
