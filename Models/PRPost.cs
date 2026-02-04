@@ -10,7 +10,7 @@
         public string Title { get; set; } = "";
         public string Description { get; set; } = "";
         public string VideoUrl { get; set; } = "";
-        public decimal weight { get; set; }
+        public decimal Weight { get; set; }
         public string Unit { get; set; } = "lb";
 
         public PRstatus Status { get; set; } = PRstatus.Pending;
@@ -23,5 +23,7 @@
 
         public User User { get; set; } = null!;
         public Lift Lift { get; set; } = null!;
+
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     }
 }
