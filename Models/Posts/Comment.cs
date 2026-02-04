@@ -1,4 +1,6 @@
-﻿namespace TallahasseePRs.Api.Models
+﻿using TallahasseePRs.Api.Models.Users;
+
+namespace TallahasseePRs.Api.Models.Posts
 {
     public class Comment
     {
