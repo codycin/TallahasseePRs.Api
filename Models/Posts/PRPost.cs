@@ -5,10 +5,10 @@ namespace TallahasseePRs.Api.Models.Posts
 {
     public class PRPost
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
-        public int UserId { get; set; }
-        public int LiftId { get; set; }
+        public Guid UserId { get; set; }
+        public Guid LiftId { get; set; }
 
         public string Title { get; set; } = "";
         public string Description { get; set; } = "";
@@ -18,7 +18,7 @@ namespace TallahasseePRs.Api.Models.Posts
 
         public PRstatus Status { get; set; } = PRstatus.Pending;
 
-        public int? JudgedByAdminID { get; set; }
+        public Guid? JudgedByAdminID { get; set; }
         public string? JudgeNote { get; set; }
         public DateTime? JudgedAt { get; set; }
 

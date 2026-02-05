@@ -5,15 +5,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using TallahasseePRs.Api.Data;
+using TallahasseePRs.Api.DTOs.Data;
 
 #nullable disable
 
 namespace TallahasseePRs.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260204190303_RestOfModels")]
-    partial class RestOfModels
+    [Migration("20260205233612_userNameFix2")]
+    partial class userNameFix2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,72 +25,11 @@ namespace TallahasseePRs.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Comment", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Lift", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("PRPostId")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid?>("ParentCommentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("body")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PRPostId");
-
-                    b.HasIndex("ParentCommentId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Comments");
-                });
-
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Follow", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("FollowedId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("FollowerId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FollowedId");
-
-                    b.HasIndex("FollowerId");
-
-                    b.ToTable("Follows");
-                });
-
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Lift", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Category")
                         .IsRequired()
@@ -109,13 +48,11 @@ namespace TallahasseePRs.Api.Migrations
                     b.ToTable("Lifts");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Notification", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Notifications.Notification", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -127,14 +64,14 @@ namespace TallahasseePRs.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("RecipientId")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("RecipientId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -143,13 +80,44 @@ namespace TallahasseePRs.Api.Migrations
                     b.ToTable("Notifications");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.PRPost", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.Comment", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("uuid");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PRPostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ParentCommentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PRPostId");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.PRPost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -164,11 +132,11 @@ namespace TallahasseePRs.Api.Migrations
                     b.Property<DateTime?>("JudgedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("JudgedByAdminID")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("JudgedByAdminID")
+                        .HasColumnType("uuid");
 
-                    b.Property<int>("LiftId")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("LiftId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -181,8 +149,8 @@ namespace TallahasseePRs.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("VideoUrl")
                         .IsRequired()
@@ -200,10 +168,62 @@ namespace TallahasseePRs.Api.Migrations
                     b.ToTable("Posts");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Profile", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.Vote", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PRPostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Value")
                         .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PRPostId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("Votes");
+                });
+
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Users.Follow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FollowedId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FollowerId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FollowedId");
+
+                    b.HasIndex("FollowerId");
+
+                    b.ToTable("Follows");
+                });
+
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Users.Profile", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -229,13 +249,11 @@ namespace TallahasseePRs.Api.Migrations
                     b.ToTable("Profiles");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.RefreshToken", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Users.RefreshToken", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -250,8 +268,8 @@ namespace TallahasseePRs.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -260,13 +278,11 @@ namespace TallahasseePRs.Api.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.User", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Users.User", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -283,6 +299,11 @@ namespace TallahasseePRs.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("UserName");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
@@ -291,50 +312,31 @@ namespace TallahasseePRs.Api.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Vote", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Notifications.Notification", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                    b.HasOne("TallahasseePRs.Api.Models.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("PRPostId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Value")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("PRPostId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("Votes");
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Comment", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.Comment", b =>
                 {
-                    b.HasOne("TallahasseePRs.Api.Models.PRPost", "PRPost")
+                    b.HasOne("TallahasseePRs.Api.Models.Posts.PRPost", "PRPost")
                         .WithMany("Comments")
                         .HasForeignKey("PRPostId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TallahasseePRs.Api.Models.Comment", "ParentComment")
+                    b.HasOne("TallahasseePRs.Api.Models.Posts.Comment", "ParentComment")
                         .WithMany("Replies")
                         .HasForeignKey("ParentCommentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("TallahasseePRs.Api.Models.User", "User")
+                    b.HasOne("TallahasseePRs.Api.Models.Users.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -347,37 +349,7 @@ namespace TallahasseePRs.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Follow", b =>
-                {
-                    b.HasOne("TallahasseePRs.Api.Models.User", "FollowedUser")
-                        .WithMany("Followers")
-                        .HasForeignKey("FollowedId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TallahasseePRs.Api.Models.User", "FollowerUser")
-                        .WithMany("Following")
-                        .HasForeignKey("FollowerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("FollowedUser");
-
-                    b.Navigation("FollowerUser");
-                });
-
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Notification", b =>
-                {
-                    b.HasOne("TallahasseePRs.Api.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TallahasseePRs.Api.Models.PRPost", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.PRPost", b =>
                 {
                     b.HasOne("TallahasseePRs.Api.Models.Lift", "Lift")
                         .WithMany()
@@ -385,7 +357,7 @@ namespace TallahasseePRs.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TallahasseePRs.Api.Models.User", "User")
+                    b.HasOne("TallahasseePRs.Api.Models.Users.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -396,37 +368,15 @@ namespace TallahasseePRs.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Profile", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.Vote", b =>
                 {
-                    b.HasOne("TallahasseePRs.Api.Models.User", "User")
-                        .WithOne()
-                        .HasForeignKey("TallahasseePRs.Api.Models.Profile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TallahasseePRs.Api.Models.RefreshToken", b =>
-                {
-                    b.HasOne("TallahasseePRs.Api.Models.User", "User")
-                        .WithMany("RefreshTokens")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Vote", b =>
-                {
-                    b.HasOne("TallahasseePRs.Api.Models.PRPost", "PRPost")
+                    b.HasOne("TallahasseePRs.Api.Models.Posts.PRPost", "PRPost")
                         .WithMany()
                         .HasForeignKey("PRPostId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TallahasseePRs.Api.Models.User", "User")
+                    b.HasOne("TallahasseePRs.Api.Models.Users.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -437,17 +387,58 @@ namespace TallahasseePRs.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Comment", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Users.Follow", b =>
+                {
+                    b.HasOne("TallahasseePRs.Api.Models.Users.User", "FollowedUser")
+                        .WithMany("Followers")
+                        .HasForeignKey("FollowedId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TallahasseePRs.Api.Models.Users.User", "FollowerUser")
+                        .WithMany("Following")
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FollowedUser");
+
+                    b.Navigation("FollowerUser");
+                });
+
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Users.Profile", b =>
+                {
+                    b.HasOne("TallahasseePRs.Api.Models.Users.User", "User")
+                        .WithOne()
+                        .HasForeignKey("TallahasseePRs.Api.Models.Users.Profile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Users.RefreshToken", b =>
+                {
+                    b.HasOne("TallahasseePRs.Api.Models.Users.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.Comment", b =>
                 {
                     b.Navigation("Replies");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.PRPost", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.PRPost", b =>
                 {
                     b.Navigation("Comments");
                 });
 
-            modelBuilder.Entity("TallahasseePRs.Api.Models.User", b =>
+            modelBuilder.Entity("TallahasseePRs.Api.Models.Users.User", b =>
                 {
                     b.Navigation("Followers");
 

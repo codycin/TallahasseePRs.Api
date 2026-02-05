@@ -2,7 +2,7 @@
 {
     public class Profile
     {
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
         public string DisplayName { get; set; } = "";
         public string? PfpUrl { get; set; }
         public string? HomeGym { get; set; }

@@ -5,8 +5,8 @@ namespace TallahasseePRs.Api.Models.Notifications
 {
     public class Notification
     {
-        public int Id { get; set; }
-        public int RecipientId { get; set; }
+        public Guid Id { get; set; }
+        public Guid RecipientId { get; set; }
         public MessageType Type { get; set; }
         public string Message { get; set; } = "";
         public bool IsRead { get; set; }

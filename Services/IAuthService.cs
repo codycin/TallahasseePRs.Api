@@ -1,11 +1,12 @@
 ﻿using TallahasseePRs.Api.DTOs.Auth;
+using TallahasseePRs.Api.Models.Users;
 
 
 namespace TallahasseePRs.Api.Services
 {
     public interface IAuthService
     {
-        Task<AuthResponse> RegisterAsync(RegisterRequest dto);
-        Task<AuthResponse> LoginAsync(LoginRequest dto);
+        Task<User?> RegisterAsync(RegisterRequest dto);
+        Task<string?> LoginAsync(LoginRequest dto);
     }
 }

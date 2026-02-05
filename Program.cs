@@ -4,10 +4,11 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using TallahasseePRs.Api.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using TallahasseePRs.Api.DTOs.Data;
+using TallahasseePRs.Api.Services;
 
 
 
@@ -20,6 +21,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IAuthService,AuthService>();
+
 
 
 
@@ -55,6 +58,7 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -5,8 +5,8 @@ namespace TallahasseePRs.Api.Models.Posts
     public class Comment
     {
         public Guid Id { get; set; }
-        public int PRPostId { get; set; }
-        public int UserId { get; set; }
+        public Guid PRPostId { get; set; }
+        public Guid UserId { get; set; }
         public string body { get; set; } = "";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

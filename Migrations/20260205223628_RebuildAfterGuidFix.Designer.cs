@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TallahasseePRs.Api.DTOs.Data;
@@ -11,9 +12,11 @@ using TallahasseePRs.Api.DTOs.Data;
 namespace TallahasseePRs.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260205223628_RebuildAfterGuidFix")]
+    partial class RebuildAfterGuidFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -298,8 +301,7 @@ namespace TallahasseePRs.Api.Migrations
 
                     b.Property<string>("UserName")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("UserName");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

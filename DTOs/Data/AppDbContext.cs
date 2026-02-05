@@ -5,7 +5,7 @@ using TallahasseePRs.Api.Models.Notifications;
 using TallahasseePRs.Api.Models.Posts;
 using TallahasseePRs.Api.Models.Users;
 
-namespace TallahasseePRs.Api.Data;
+namespace TallahasseePRs.Api.DTOs.Data;
 
 public class AppDbContext : DbContext
 {
@@ -22,14 +22,14 @@ public class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
 
-
-
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         // USER
+        // Map the C# property `UserName` to the actual DB column name (example: "username")
+
+
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
