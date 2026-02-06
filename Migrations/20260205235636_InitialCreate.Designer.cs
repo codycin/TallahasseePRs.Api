@@ -12,8 +12,8 @@ using TallahasseePRs.Api.DTOs.Data;
 namespace TallahasseePRs.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260205233612_userNameFix2")]
-    partial class userNameFix2
+    [Migration("20260205235636_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -301,8 +301,7 @@ namespace TallahasseePRs.Api.Migrations
 
                     b.Property<string>("UserName")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("UserName");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

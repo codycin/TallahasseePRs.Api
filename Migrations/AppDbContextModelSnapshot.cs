@@ -298,8 +298,7 @@ namespace TallahasseePRs.Api.Migrations
 
                     b.Property<string>("UserName")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("UserName");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
