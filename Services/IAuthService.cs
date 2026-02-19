@@ -6,7 +6,10 @@ namespace TallahasseePRs.Api.Services
 {
     public interface IAuthService
     {
-        Task<User?> RegisterAsync(RegisterRequest dto);
-        Task<string?> LoginAsync(LoginRequest dto);
+        Task<AuthResponse?> RegisterAsync(RegisterRequest dto);
+        Task<AuthResponse?> LoginAsync(LoginRequest dto);
+
+        Task<AuthResponse?> RefreshAsync(RefreshRequest dto);
+        Task<bool> LogoutAsync(RefreshRequest dto);
     }
 }

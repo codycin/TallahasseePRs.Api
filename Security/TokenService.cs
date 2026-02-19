@@ -12,7 +12,7 @@ namespace TallahasseePRs.Api.Security
 {
     public class TokenService
     {
-        public static string CreateToken(User user, IConfiguration configuration)
+        public static (string Token, DateTime expiresAtUtc) CreateToken(User user, IConfiguration configuration)
         {
             var claims = new List<Claim>
             {
@@ -20,17 +20,25 @@ namespace TallahasseePRs.Api.Security
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(configuration.GetValue<string>("Jwt:Key")!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
+            var key = configuration["Jwt:Key"]!;
+            var issuer = configuration["Jwt:Issuer"];
+            var audience = configuration["Jwt:Audience"];
 
-            var tokenDescriptor = new JwtSecurityToken(
-                issuer: configuration.GetValue<string>("AppSetting:Issuer"),
-                audience: configuration.GetValue<string>("AppSetting:Audience"),
+            var minutes = int.TryParse(configuration["Jwt:AccessTokenExpirationMinutes"], out var m) ? m : 60;
+            var expiresAtUtc = DateTime.UtcNow.AddMinutes(minutes);
+
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha512);
+
+
+            var jwt = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(1),
+                expires: expiresAtUtc,
                 signingCredentials: creds);
-            return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+
+            return (new JwtSecurityTokenHandler().WriteToken(jwt),expiresAtUtc);
         }
     }
 }

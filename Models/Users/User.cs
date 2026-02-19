@@ -13,4 +13,7 @@ public class User
     public ICollection<Follow> Followers { get; set; } = new List<Follow>();
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+
+
+
 }

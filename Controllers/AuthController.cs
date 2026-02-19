@@ -1,16 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using TallahasseePRs.Api.DTOs.Auth;
 using TallahasseePRs.Api.Models.Users;
-using Microsoft.AspNetCore.Identity;
 using TallahasseePRs.Api.Services;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using System.IdentityModel.Tokens.Jwt;
-using TallahasseePRs.Api.Security;
-using System.Threading.Tasks;
 
 
 namespace TallahasseePRs.Api.Controllers
@@ -18,31 +9,47 @@ namespace TallahasseePRs.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
 
-    
+
     public class AuthController(IAuthService authService) : ControllerBase
     {
 
         [HttpPost("register")]
-        public async Task<ActionResult<User>> Register(RegisterRequest request)
+        public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
         {
-            var user = await authService.RegisterAsync(request);
-            if (user == null)
+            var result = await authService.RegisterAsync(request);
+            if (result == null)
             {
                 return BadRequest("Username already exists.");
             }
-            return Ok(user);
+            return Ok(result);
         }
         [HttpPost("login")]
-        public async Task<ActionResult<string>> Login(LoginRequest request)
+        public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
         {
-            var token = await authService.LoginAsync(request);
-            if (token == null)
+            var result = await authService.LoginAsync(request);
+            if (result == null)
                 return BadRequest("Invalid username or password");
-            return Ok(token);
-    
+            return Ok(result);
+
         }
+        [HttpPost("refresh")]
+        public async Task<ActionResult<AuthResponse>> Refresh(RefreshRequest request)
+        {
+            var result = await authService.RefreshAsync(request);
+            if (result == null)
+                return BadRequest("Invalid refresh token");
+            return Ok(result);
+        }
+        [HttpPost("logout")]
+        public async Task<ActionResult> Logout(RefreshRequest request)
+        {
+            var success = await authService.LogoutAsync(request);
+            if (!success)
+                return BadRequest("Invalid refresh token");
+            return Ok();
 
-   
 
+
+        }
     }
 }

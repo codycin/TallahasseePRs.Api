@@ -1,17 +1,13 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using System;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TallahasseePRs.Api.DTOs.Data;
+using TallahasseePRs.Api.Models.Users;
+using TallahasseePRs.Api.Security;
 using TallahasseePRs.Api.Services;
-
-
-
+using static TallahasseePRs.Api.Services.CurrentUserService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +19,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IAuthService,AuthService>();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+builder.Services.Configure<JwtOptions>(
+    builder.Configuration.GetSection(JwtOptions.SectionName));
+
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 
 
@@ -73,5 +76,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.Run();
+
 
 
