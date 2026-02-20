@@ -9,6 +9,7 @@ using TallahasseePRs.Api.Security;
 using TallahasseePRs.Api.Services;
 using static TallahasseePRs.Api.Services.CurrentUserService;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -17,7 +18,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<IAuthService,AuthService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -27,6 +28,7 @@ builder.Services.Configure<JwtOptions>(
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
+builder.Services.AddScoped<IPostService, PostService>();
 
 
 //JWT config from appsetting json
@@ -76,6 +78,3 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.Run();
-
-
-
