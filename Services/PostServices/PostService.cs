@@ -4,7 +4,7 @@ using TallahasseePRs.Api.DTOs.Posts;
 using TallahasseePRs.Api.Models.Posts;
 using TallahasseePRs.Api.Models.Enums;
 
-namespace TallahasseePRs.Api.Services
+namespace TallahasseePRs.Api.Services.PostServices
 {
     public sealed class PostService : IPostService
     {

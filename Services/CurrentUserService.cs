@@ -1,4 +1,6 @@
-﻿using System.Security.Claims;
+﻿using Microsoft.Identity.Client;
+using System.Security.Claims;
+using static System.Net.WebRequestMethods;
 
 namespace TallahasseePRs.Api.Services
 {
@@ -10,7 +12,21 @@ namespace TallahasseePRs.Api.Services
             {
                 _httpContextAccessor = httpContextAccessor;
             }
-            private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
+        public Guid GetUserId()
+        {
+            var user = _httpContextAccessor.HttpContext?.User
+                       ?? throw new UnauthorizedAccessException("No user context.");
+
+            var raw = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                      ?? throw new UnauthorizedAccessException("Missing NameIdentifier claim.");
+
+            if (!Guid.TryParse(raw, out var userId))
+                throw new UnauthorizedAccessException("Invalid user id claim.");
+
+            return userId;
+        }
+
+        private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
             public bool IsAuthenticated => User?.Identity?.IsAuthenticated == true;
             public Guid? UserId
             {
@@ -21,8 +37,10 @@ namespace TallahasseePRs.Api.Services
                 }
             }
 
-            
             public string? UserEmail => _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Name)?.Value;
+
+
+            
         }
 
     

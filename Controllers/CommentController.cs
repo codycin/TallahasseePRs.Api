@@ -1,0 +1,67 @@
+﻿
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TallahasseePRs.Api.DTOs.Comments;
+using TallahasseePRs.Api.Services;
+using TallahasseePRs.Api.Services.PostServices;
+
+
+namespace TallahasseePRs.Api.Controllers
+{
+    [ApiController]
+    [Route("api")]
+    [Authorize] // require JWT
+    public class CommentsController : ControllerBase
+    {
+        private readonly ICommentService _comments;
+        private readonly ICurrentUserService _currentUser;
+
+        public CommentsController(ICommentService comments, ICurrentUserService currentUser)
+        {
+            _comments = comments;
+            _currentUser = currentUser;
+        }
+
+        // POST /api/posts/{postId}/comments
+        [HttpPost("posts/{postId:guid}/comments")]
+        public async Task<ActionResult<CommentResponse>> CreateTopLevel(
+            [FromRoute] Guid postId,
+            [FromBody] AddCommentRequest request)
+        {
+            var userId = _currentUser.GetUserId();
+            var created = await _comments.CreateTopLevelAsync(postId, userId, request.Body);
+            return Ok(created);
+        }
+
+        // POST /api/posts/{postId}/comments/{parentCommentId}/replies
+        [HttpPost("posts/{postId:guid}/comments/{parentCommentId:guid}/replies")]
+        public async Task<ActionResult<CommentResponse>> Reply(
+            [FromRoute] Guid postId,
+            [FromRoute] Guid parentCommentId,
+            [FromBody] AddCommentRequest request)
+        {
+            var userId = _currentUser.GetUserId();
+            var created = await _comments.CreateReplyAsync(postId, parentCommentId, userId, request.Body);
+            return Ok(created);
+        }
+
+        // GET /api/posts/{postId}/comments
+        [AllowAnonymous] // optional: allow viewing without auth
+        [HttpGet("posts/{postId:guid}/comments")]
+        public async Task<ActionResult<List<CommentResponse>>> GetForPost([FromRoute] Guid postId)
+        {
+            var thread = await _comments.GetThreadForPostAsync(postId);
+            return Ok(thread);
+        }
+
+        // DELETE /api/comments/{commentId}
+        [HttpDelete("comments/{commentId:guid}")]
+        public async Task<IActionResult> Delete([FromRoute] Guid commentId)
+        {
+            var userId = _currentUser.GetUserId();
+            await _comments.DeleteAsync(commentId, userId);
+            return NoContent();
+        }
+    }
+
+}

@@ -1,6 +1,6 @@
 ﻿using TallahasseePRs.Api.DTOs.Posts;
 
-namespace TallahasseePRs.Api.Services
+namespace TallahasseePRs.Api.Services.PostServices
 {
     //Defines what posts can do.
     public interface IPostService

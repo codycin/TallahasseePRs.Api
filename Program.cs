@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TallahasseePRs.Api.DTOs.Data;
+using TallahasseePRs.Api.Models;
 using TallahasseePRs.Api.Models.Users;
 using TallahasseePRs.Api.Security;
 using TallahasseePRs.Api.Services;
+using TallahasseePRs.Api.Services.PostServices;
 using static TallahasseePRs.Api.Services.CurrentUserService;
 
 
@@ -14,6 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -29,6 +33,7 @@ builder.Services.Configure<JwtOptions>(
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 
 
 //JWT config from appsetting json
@@ -63,6 +68,26 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Optional but recommended in dev so your schema is applied:
+    db.Database.Migrate();
+
+    // Seed lifts if none exist
+    if (!db.Lifts.Any())
+    {
+        db.Lifts.Add(new Lift
+        {
+            Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            Name = "Bench Press" // adjust to match your Lift properties
+        });
+
+        db.SaveChanges();
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

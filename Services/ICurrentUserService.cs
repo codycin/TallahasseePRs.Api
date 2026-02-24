@@ -5,5 +5,7 @@
         Guid? UserId { get; }
         string? UserEmail { get; }
         bool IsAuthenticated { get; }
+        Guid GetUserId();
+
     }
 }

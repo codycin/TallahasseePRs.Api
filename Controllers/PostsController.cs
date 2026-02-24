@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using TallahasseePRs.Api.DTOs.Posts;
-using TallahasseePRs.Api.Services;
+using TallahasseePRs.Api.Services.PostServices;
 
 
 namespace TallahasseePRs.Api.Controllers;
