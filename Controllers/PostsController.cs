@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using TallahasseePRs.Api.DTOs.Posts;
+using TallahasseePRs.Api.Services;
 using TallahasseePRs.Api.Services.PostServices;
 
 
@@ -12,10 +12,11 @@ namespace TallahasseePRs.Api.Controllers;
 public sealed class PostsController : ControllerBase
 {
     private readonly IPostService _posts;
-
-    public PostsController(IPostService posts)
+    private readonly ICurrentUserService _currentUser;
+    public PostsController(IPostService posts, ICurrentUserService CurrentUser)
     {
         _posts = posts;
+        _currentUser = CurrentUser;
     }
 
     //Gets post by ID
@@ -33,9 +34,7 @@ public sealed class PostsController : ControllerBase
     
     public async Task<IActionResult> Create([FromBody] CreatePostRequest request) //Creat from JSON body, with a request
     {
-        //Get user id securly
-        var userId = GetUserId();
-        //Create post through post service
+        var userId = _currentUser.GetUserId();        //Create post through post service
         var created = await _posts.CreateAsync(userId, request);
 
         // 201 with location header is standard REST
@@ -48,9 +47,7 @@ public sealed class PostsController : ControllerBase
 
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePostRequest request) //From JSON body conver to request
     {
-        //Securly get ID
-        var userId = GetUserId();
-
+        var userId = _currentUser.GetUserId();
         //Try catch to see if it works so we know what HTTP code to send back
         try
         {
@@ -73,8 +70,7 @@ public sealed class PostsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var userId = GetUserId();
-
+        var userId = _currentUser.GetUserId();
         //Try catch again to check for user
         try
         {
@@ -88,11 +84,4 @@ public sealed class PostsController : ControllerBase
         }
     }
     //Securly get user!
-    private Guid GetUserId()
-    {
-        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(raw))
-            throw new InvalidOperationException("Missing NameIdentifier claim.");
-        return Guid.Parse(raw);
-    }
 }
