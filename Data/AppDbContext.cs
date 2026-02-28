@@ -5,7 +5,7 @@ using TallahasseePRs.Api.Models.Notifications;
 using TallahasseePRs.Api.Models.Posts;
 using TallahasseePRs.Api.Models.Users;
 
-namespace TallahasseePRs.Api.DTOs.Data;
+namespace TallahasseePRs.Api.Data;
 
 public class AppDbContext : DbContext
 {

@@ -25,5 +25,8 @@ namespace TallahasseePRs.Api.DTOs.Posts
 
         // optional extras that clients usually want:
         public int CommentCount { get; set; }
+        public int VoteCount { get; set; } 
+
+        public VoteValue? MyVoteValue { get; set; }
     }
 }

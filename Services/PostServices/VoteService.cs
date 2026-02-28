@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.Design;
-using TallahasseePRs.Api.DTOs.Data;
+using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.DTOs.Votes;
 using TallahasseePRs.Api.Models.Enums;
 using TallahasseePRs.Api.Models.Posts;

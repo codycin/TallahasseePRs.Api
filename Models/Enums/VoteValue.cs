@@ -2,6 +2,6 @@
 {
     public enum VoteValue
     {
-        Up, Down
+        Up = 1, Down = -1
     }
 }

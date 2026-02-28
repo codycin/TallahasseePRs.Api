@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.EntityFrameworkCore;
+using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.DTOs.Comments;
-using TallahasseePRs.Api.DTOs.Data;
 using TallahasseePRs.Api.Models.Posts;
 
 namespace TallahasseePRs.Api.Services.PostServices

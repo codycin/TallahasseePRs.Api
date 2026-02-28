@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TallahasseePRs.Api.DTOs.Data;
 using TallahasseePRs.Api.DTOs.Posts;
 using TallahasseePRs.Api.Models.Posts;
 using TallahasseePRs.Api.Models.Enums;
+using TallahasseePRs.Api.Data;
 
 namespace TallahasseePRs.Api.Services.PostServices
 {

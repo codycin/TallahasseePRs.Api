@@ -1,8 +1,8 @@
 ﻿using Azure.Core;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.DTOs.Auth;
-using TallahasseePRs.Api.DTOs.Data;
 using TallahasseePRs.Api.Models.Users;
 using TallahasseePRs.Api.Security;
 

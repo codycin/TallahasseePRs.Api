@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using TallahasseePRs.Api.DTOs.Data;
+using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.Models;
 using TallahasseePRs.Api.Models.Users;
 using TallahasseePRs.Api.Security;
 using TallahasseePRs.Api.Services;
+using TallahasseePRs.Api.Services.FeedServices;
 using TallahasseePRs.Api.Services.PostServices;
 using static TallahasseePRs.Api.Services.CurrentUserService;
 
@@ -37,6 +38,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IVoteService, VoteService>();
+
+//Feed service
+builder.Services.AddScoped<IFeedService, FeedService>();
 
 
 //JWT config from appsetting json
