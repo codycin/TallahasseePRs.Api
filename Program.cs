@@ -9,6 +9,7 @@ using TallahasseePRs.Api.Models.Users;
 using TallahasseePRs.Api.Security;
 using TallahasseePRs.Api.Services;
 using TallahasseePRs.Api.Services.FeedServices;
+using TallahasseePRs.Api.Services.FollowServices;
 using TallahasseePRs.Api.Services.PostServices;
 using static TallahasseePRs.Api.Services.CurrentUserService;
 
@@ -32,6 +33,7 @@ builder.Services.Configure<JwtOptions>(
 builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IFollowService,FollowService>();
 
 
 //Post services
