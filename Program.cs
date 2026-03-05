@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.Models;
@@ -11,6 +12,7 @@ using TallahasseePRs.Api.Services;
 using TallahasseePRs.Api.Services.FeedServices;
 using TallahasseePRs.Api.Services.FollowServices;
 using TallahasseePRs.Api.Services.PostServices;
+using TallahasseePRs.Api.Services.ProfileServices;
 using static TallahasseePRs.Api.Services.CurrentUserService;
 
 
@@ -34,6 +36,9 @@ builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFollowService,FollowService>();
+builder.Services.AddScoped<ProfileService>();
+builder.Services.AddScoped<IProfileService>(sp => sp.GetRequiredService<ProfileService>());
+builder.Services.AddScoped<IProfileQueryService>(sp => sp.GetRequiredService<ProfileService>());
 
 
 //Post services
@@ -69,8 +74,11 @@ builder.Services
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
 
+            RoleClaimType = ClaimTypes.Role,
+
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
+
         };
     });
 
@@ -96,7 +104,11 @@ using (var scope = app.Services.CreateScope())
 
         db.SaveChanges();
     }
+
+    await AdminSeeder.SeedAsync(db);
+
 }
+
 
 if (app.Environment.IsDevelopment())
 {

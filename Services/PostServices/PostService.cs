@@ -111,14 +111,14 @@ namespace TallahasseePRs.Api.Services.PostServices
             var commentCount = await _db.Comments.CountAsync(c => c.Id == postId); //THIS WAS WEIRD, CHECK AGAIN FOR COMMENT FUNCTION
             return ToResponse(post, commentCount);
         }
-        public async Task<bool> DeleteAsync(Guid userId, Guid postId)
+        public async Task<bool> DeleteAsync(Guid userId, Guid postId, bool isAdmin)
         {
             //Fetches post and makes sure it exists
             var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId);
             if (post is null) return false;
 
             //Makes sure owner is owner
-            if (post.UserId != userId)
+            if ((post.UserId != userId) && !isAdmin)
                 throw new UnauthorizedAccessException("You do not own this post.");
 
             //Removes from database

@@ -1,12 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.IdentityModel.Tokens;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using TallahasseePRs.Api.Models.Users;
-using System.Security.Cryptography;
-
-using TallahasseePRs.Api.Security;
 
 namespace TallahasseePRs.Api.Security
 {
@@ -17,7 +14,8 @@ namespace TallahasseePRs.Api.Security
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.Email),
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Role, user.Role ?? "Member")
             };
 
             var key = configuration["Jwt:Key"]!;

@@ -8,7 +8,7 @@ namespace TallahasseePRs.Api.Services.PostServices
         Task<PostResponse> CreateAsync(Guid userId, CreatePostRequest request);
         Task<PostResponse?> GetByIdAsync(Guid postId);
         Task<PostResponse?> UpdateAsync(Guid userId, Guid postId, UpdatePostRequest request);
-        Task<bool> DeleteAsync(Guid userId, Guid postId);
+        Task<bool> DeleteAsync(Guid userId, Guid postId, bool isAdmin);
 
 
     }

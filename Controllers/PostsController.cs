@@ -68,13 +68,15 @@ public sealed class PostsController : ControllerBase
     //Delete ID
     [Authorize]
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var userId = _currentUser.GetUserId();
+        var isAdmin = User.IsInRole("Admin"); // uses JWT role claim
+
         //Try catch again to check for user
         try
         {
-            var deleted = await _posts.DeleteAsync(userId, id);
+            var deleted = await _posts.DeleteAsync(userId, id, isAdmin);
             if (!deleted) return NotFound();
             return NoContent();
         }

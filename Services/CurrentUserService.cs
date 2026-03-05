@@ -12,21 +12,21 @@ namespace TallahasseePRs.Api.Services
             {
                 _httpContextAccessor = httpContextAccessor;
             }
-        public Guid GetUserId()
-        {
-            var user = _httpContextAccessor.HttpContext?.User
-                       ?? throw new UnauthorizedAccessException("No user context.");
+            public Guid GetUserId()
+            {
+                var user = _httpContextAccessor.HttpContext?.User
+                           ?? throw new UnauthorizedAccessException("No user context.");
 
-            var raw = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                      ?? throw new UnauthorizedAccessException("Missing NameIdentifier claim.");
+                var raw = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                          ?? throw new UnauthorizedAccessException("Missing NameIdentifier claim.");
 
-            if (!Guid.TryParse(raw, out var userId))
-                throw new UnauthorizedAccessException("Invalid user id claim.");
+                if (!Guid.TryParse(raw, out var userId))
+                    throw new UnauthorizedAccessException("Invalid user id claim.");
 
-            return userId;
-        }
+                return userId;
+            }
 
-        private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
+            private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
             public bool IsAuthenticated => User?.Identity?.IsAuthenticated == true;
             public Guid? UserId
             {

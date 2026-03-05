@@ -14,6 +14,8 @@ namespace TallahasseePRs.Api.Services
         {
 
             var user = await context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+         
+
 
             if (user is null) return null;
 
@@ -43,10 +45,13 @@ namespace TallahasseePRs.Api.Services
         {
             if (await context.Users.AnyAsync(u => u.Email == dto.Email)) return null;
 
-            var user = new User { Email = dto.Email };
+            var user = new User { Email = dto.Email, Role = "Member" };
             user.PasswordHash = hasher.HashPassword(user, dto.Password);
 
+            var profile = new Profile { UserId = user.Id };
+
             context.Users.Add(user);
+            context.Profiles.Add(profile);
             await context.SaveChangesAsync();
 
             var (token, expiresAt) = TokenService.CreateToken(user, configuration);
