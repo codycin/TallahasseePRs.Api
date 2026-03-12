@@ -1,4 +1,5 @@
-﻿using TallahasseePRs.Api.Models.Users;
+﻿using TallahasseePRs.Api.Models.Notifications;
+using TallahasseePRs.Api.Models.Users;
 
 namespace TallahasseePRs.Api.Models.Posts
 {
@@ -17,6 +18,9 @@ namespace TallahasseePRs.Api.Models.Posts
         public Comment? ParentComment { get; set; } 
 
         public ICollection<Comment> Replies { get; set; } = new List<Comment>();
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+        public ICollection<Media> MediaItems { get; set; } = new List<Media>();
+
 
     }
 }

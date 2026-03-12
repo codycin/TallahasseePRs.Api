@@ -1,18 +1,24 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client.Extensions.Msal;
 using TallahasseePRs.Api.Data;
+using TallahasseePRs.Api.DTOs.Media;
 using TallahasseePRs.Api.DTOs.Profiles;
+using TallahasseePRs.Api.Models;
 using TallahasseePRs.Api.Models.Users;
+using TallahasseePRs.Api.Services.Storage;
 
 namespace TallahasseePRs.Api.Services.ProfileServices
 {
     public class ProfileService : IProfileService, IProfileQueryService
     {
         private readonly AppDbContext _db;
+        private readonly IObjectStorage _storage;
 
-        public ProfileService(AppDbContext appDbContext)
+        public ProfileService(AppDbContext appDbContext, IObjectStorage storage)
         {
             _db = appDbContext;
+            _storage = storage;
         }
         public async Task<ProfileResponse?> GetByIdAsync(Guid userId)
         {
@@ -24,15 +30,24 @@ namespace TallahasseePRs.Api.Services.ProfileServices
         }
         public async Task<ProfileResponse?> UpdateAsync(Guid userId, UpdateProfileRequest request)
         {
-            var profile = await _db.Profiles.Where(p => p.UserId == userId).SingleOrDefaultAsync();
+            var profile = await _db.Profiles.Include(p => p.ProfilePicture).SingleOrDefaultAsync(p => p.UserId == userId);
+
             if (profile == null) return null;
 
             // Null = don't change semantics
             if (request.DisplayName is not null)
                 profile.DisplayName = request.DisplayName.Trim();
 
-            if (request.PfpUrl is not null)
-                profile.PfpUrl = string.IsNullOrWhiteSpace(request.PfpUrl) ? null : request.PfpUrl.Trim();
+            if (request.RemoveProfilePicture)
+                profile.ProfilePictureId = null;
+            else if(request.ProfilePictureId.HasValue)
+            {
+                var media = await _db.Media.SingleOrDefaultAsync(m => m.Id == request.ProfilePictureId.Value);
+
+                if (media == null) throw new InvalidOperationException("Profile picture media was not found");
+
+                profile.ProfilePictureId = media.Id;
+            }
 
             if (request.HomeGym is not null)
                 profile.HomeGym = string.IsNullOrWhiteSpace(request.HomeGym) ? null : request.HomeGym.Trim();
@@ -58,30 +73,56 @@ namespace TallahasseePRs.Api.Services.ProfileServices
 
         public async Task<PublicProfileResponse?> GetPublicByIdAsync(Guid userId)
         {
-            //Later implement for public/private account
-            var p = await _db.Profiles.SingleOrDefaultAsync(x => x.UserId == userId);
+            var p = await _db.Profiles.Include(p=>p.ProfilePicture).SingleOrDefaultAsync(x => x.UserId == userId);
             return p is null ? null : ToPublicResponse(p);
         }
 
-        private static ProfileResponse ToResponse(Profile profile) => new()
+        private ProfileResponse ToResponse(Profile profile) => new()
         {
             UserId = profile.UserId,
             DisplayName = profile.DisplayName,
-            PfpUrl = profile.PfpUrl,
+            ProfilePicture = ToMediaResponse(profile.ProfilePicture),
             HomeGym = profile.HomeGym,
             LifterType = profile.LifterType,
             SpecialtyLifts = profile.SpecialtyLifts,
             MeasurementsJson = profile.MeasurmentsJson
 
         };
-        private static PublicProfileResponse ToPublicResponse(Profile profile) => new()
+        private PublicProfileResponse ToPublicResponse(Profile profile) => new()
         {
             UserId = profile.UserId,
             DisplayName = profile.DisplayName,
-            PfpUrl = profile.PfpUrl,
+            ProfilePicture = ToMediaResponse(profile.ProfilePicture),
             HomeGym = profile.HomeGym,
             LifterType = profile.LifterType,
             SpecialtyLifts = profile.SpecialtyLifts,
         };
+
+        private MediaResponse? ToMediaResponse(Models.Media? media)
+        {
+            if (media == null) return null;
+
+            return new MediaResponse
+            {
+                Id = media.Id,
+                Url = _storage.GetPublicUrl(media.ObjectKey),
+                ThumbnailUrl = media.ThumbnailObjectKey != null
+                    ? _storage.GetPublicUrl(media.ThumbnailObjectKey)
+                    : null,
+
+                Kind = media.Kind.ToString(),
+                Purpose = media.Purpose.ToString(),
+
+                OriginalFileName = media.OriginalFileName,
+                ContentType = media.ContentType,
+                SizeBytes = media.SizeBytes,
+
+                Width = media.Width,
+                Height = media.Height,
+                DurationSeconds = media.DurationSeconds,
+
+                CreatedAt = media.CreatedAt
+            };
+        }
     }
 }

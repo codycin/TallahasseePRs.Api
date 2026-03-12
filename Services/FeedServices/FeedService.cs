@@ -2,10 +2,12 @@
 using TallahasseePRs.Api.Common.Paging;
 using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.DTOs.Feed;
+using TallahasseePRs.Api.DTOs.Media;
 using TallahasseePRs.Api.DTOs.Posts;
 using TallahasseePRs.Api.Models.Enums;
 using TallahasseePRs.Api.Models.Posts;
 using TallahasseePRs.Api.Services.PostServices;
+using TallahasseePRs.Api.Services.Storage;
 
 namespace TallahasseePRs.Api.Services.FeedServices
 {
@@ -13,18 +15,23 @@ namespace TallahasseePRs.Api.Services.FeedServices
     {
         private readonly AppDbContext _db;
         private readonly ICommentService _commentService;
+        private readonly IObjectStorage _storage;
 
-        public FeedService(AppDbContext db, ICommentService commentService)
+        public FeedService(AppDbContext db, ICommentService commentService, IObjectStorage storage)
         {
             _db = db;
             _commentService = commentService;
+            _storage = storage;
         }
 
         public async Task<FeedPage<PostResponse>> GetFeedAsync(FeedQuery query, Guid requestingUser)
         {
             var limit = Math.Clamp(query.Limit, 1,50);
 
-            IQueryable<PRPost> q = _db.Posts.AsQueryable();
+            IQueryable<PRPost> q = _db.Posts
+                .AsNoTracking()
+                .Include(p => p.MediaItems);
+
 
             //Feed type filter
             q = query.Type switch
@@ -102,7 +109,11 @@ namespace TallahasseePRs.Api.Services.FeedServices
                     LiftId = post.LiftId,
                     Title = post.Title,
                     Description = post.Description,
-                    VideoUrl = post.VideoUrl,
+                    Media = post.MediaItems
+                        .OrderBy(m => m.SortOrder)
+                        .ThenBy(m => m.CreatedAt)
+                        .Select(ToMediaResponse)
+                        .ToList(),
                     Weight = post.Weight,
                     Unit = post.Unit,
                     Status = post.Status,
@@ -129,6 +140,30 @@ namespace TallahasseePRs.Api.Services.FeedServices
             {
                 Items = items,
                 NextCursor = nextCursor
+            };
+        }
+        private MediaResponse ToMediaResponse(Models.Media media)
+        {
+            return new MediaResponse
+            {
+                Id = media.Id,
+                Url = _storage.GetPublicUrl(media.ObjectKey),
+                ThumbnailUrl = media.ThumbnailObjectKey != null
+                    ? _storage.GetPublicUrl(media.ThumbnailObjectKey)
+                    : null,
+
+                Kind = media.Kind.ToString(),
+                Purpose = media.Purpose.ToString(),
+
+                OriginalFileName = media.OriginalFileName,
+                ContentType = media.ContentType,
+                SizeBytes = media.SizeBytes,
+
+                Width = media.Width,
+                Height = media.Height,
+                DurationSeconds = media.DurationSeconds,
+
+                CreatedAt = media.CreatedAt
             };
         }
     }

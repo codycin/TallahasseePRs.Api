@@ -1,4 +1,5 @@
 ﻿using TallahasseePRs.Api.Models.Enums;
+using TallahasseePRs.Api.Models.Notifications;
 using TallahasseePRs.Api.Models.Users;
 
 namespace TallahasseePRs.Api.Models.Posts
@@ -12,7 +13,6 @@ namespace TallahasseePRs.Api.Models.Posts
 
         public string Title { get; set; } = "";
         public string Description { get; set; } = "";
-        public string VideoUrl { get; set; } = "";
         public decimal Weight { get; set; }
         public string Unit { get; set; } = "lb";
 
@@ -28,5 +28,8 @@ namespace TallahasseePRs.Api.Models.Posts
         public Lift Lift { get; set; } = null!;
 
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+        public ICollection<Media> MediaItems { get; set; } = new List<Media>();
+
     }
 }

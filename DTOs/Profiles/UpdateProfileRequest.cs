@@ -4,12 +4,12 @@ namespace TallahasseePRs.Api.DTOs.Profiles
 {
     public class UpdateProfileRequest
     {
+        
+
         [MaxLength(50)]
         public string? DisplayName { get; init; }
-
-        [Url]
-        [MaxLength(500)]
-        public string? PfpUrl { get; init; }
+        public Guid? ProfilePictureId { get; init; }
+        public bool RemoveProfilePicture { get; init; }
 
         [MaxLength(80)]
         public string? HomeGym { get; init; }

@@ -1,25 +1,34 @@
 ﻿using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using System.Numerics;
 using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.DTOs.Follows;
 using TallahasseePRs.Api.DTOs.Posts;
+using TallahasseePRs.Api.Models.Enums;
 using TallahasseePRs.Api.Models.Users;
+using TallahasseePRs.Api.Services.Notifications;
 
 namespace TallahasseePRs.Api.Services.FollowServices
 {
     public class FollowService : IFollowService
     {
         private readonly AppDbContext _db;
-
-        public FollowService(AppDbContext appDbContext)
+        private readonly INotificationService _notificationService;
+        public FollowService(AppDbContext appDbContext, INotificationService notificationService)
         {
             _db = appDbContext;
+            _notificationService = notificationService;
         }
 
         public async Task<FollowResponse> FollowAsync(Guid UserId, FollowRequest request)
         {
             var followedExists = await _db.Users.AnyAsync(l => l.Id == request.FollowedId);
+            var actor = await _db.Users
+            .FirstOrDefaultAsync(u => u.Id == UserId);
+
+            if (actor is null)
+                throw new InvalidOperationException("Current user not found.");
 
             if (!followedExists)
             {
@@ -44,6 +53,13 @@ namespace TallahasseePRs.Api.Services.FollowServices
 
             _db.Follows.Add(follow);
             await _db.SaveChangesAsync();
+
+            await _notificationService.CreateAsync(
+                recipientId: request.FollowedId,
+                actorId: UserId,
+                type: NotificationType.Follow,
+                message: $"{actor.UserName} started following you."
+            );
 
             return ToResponse(follow);
         }

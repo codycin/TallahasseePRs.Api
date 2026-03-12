@@ -1,0 +1,424 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client.Extensions.Msal;
+using System.Net.Mime;
+using TallahasseePRs.Api.Data;
+using TallahasseePRs.Api.Data.Configurations;
+using TallahasseePRs.Api.DTOs.Media;
+using TallahasseePRs.Api.Models;
+using TallahasseePRs.Api.Services.Storage;
+
+namespace TallahasseePRs.Api.Services.Media
+{
+    public class MediaService : IMediaService
+    {
+        private static readonly HashSet<string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        };
+
+        private static readonly HashSet<string> AllowedVideoTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "video/mp4",
+            "video/webm",
+            "video/quicktime"
+        };
+
+        private readonly AppDbContext _db;
+        private readonly IObjectStorage _storage;
+        private readonly R2Options _r2Options;
+        private readonly MediaOptions _mediaOptions;
+
+        public MediaService(
+            AppDbContext db,
+            IObjectStorage storage,
+            IOptions<R2Options> r2Options,
+            IOptions<MediaOptions> mediaOptions)
+        {
+            _db = db;
+            _storage = storage;
+            _r2Options = r2Options.Value;
+            _mediaOptions = mediaOptions.Value;
+        }
+
+        public async Task<CreateMediaUploadResponse> CreateUploadAsync(
+            Guid userId,
+            CreateMediaUploadRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateRequest(request);
+
+            var kind = DetermineKind(request.ContentType);
+
+            ValidateAllowedContentType(kind, request.ContentType);
+            ValidateFileSize(kind, request.Purpose, request.SizeBytes);
+
+            await ValidateTargetOwnershipAsync(userId, request, cancellationToken);
+            await ValidatePurposeLimitsAsync(userId, request, kind, cancellationToken);
+
+            var mediaId = Guid.NewGuid();
+            var objectKey = BuildObjectKey(userId, mediaId, request, kind);
+
+            var media = new Models.Media
+            {
+                Id = mediaId,
+                OwnerId = userId,
+                Kind = kind,
+                Purpose = request.Purpose,
+                Status = MediaStatus.Pending,
+
+                StorageProvider = "cloudflare-r2",
+                Bucket = _r2Options.BucketName,
+                ObjectKey = objectKey,
+
+                OriginalFileName = request.FileName,
+                ContentType = request.ContentType,
+                SizeBytes = request.SizeBytes,
+
+                PostId = request.PostId,
+                CommentId = request.CommentId,
+                ProfileId = request.ProfileId,
+
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.Media.Add(media);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            var presigned = await _storage.CreatePresignedUploadAsync(
+                objectKey,
+                request.ContentType,
+                TimeSpan.FromMinutes(10),
+                cancellationToken);
+
+            return new CreateMediaUploadResponse
+            {
+                MediaId = media.Id,
+                UploadUrl = presigned.Url,
+                ExpiresAtUtc = presigned.ExpiresAtUtc,
+                ObjectKey = media.ObjectKey
+            };
+        }
+
+        public async Task<MediaResponse?> GetByIdAsync(Guid mediaId, Guid userId, CancellationToken cancellationToken = default)
+        {
+            var media = await _db.Media.AsNoTracking().
+                FirstOrDefaultAsync(m=>m.Id == mediaId && m.OwnerId == userId, cancellationToken);
+
+            return media is null ? null : ToResponse(media);
+
+        }
+
+        public async Task<IReadOnlyList<MediaResponse>> GetForPostAsync(Guid postId, CancellationToken cancellationToken = default)
+        {
+            return await _db.Media
+                .AsNoTracking()
+                .Where(m=>m.PostId == postId && m.Status == MediaStatus.Ready)
+                .OrderBy(m=>m.CreatedAt)
+                .Select(m=> new MediaResponse
+                {
+                    Id = m.Id,
+                    Url = _storage.GetPublicUrl(m.ObjectKey),
+                    ThumbnailUrl = m.ThumbnailObjectKey != null
+                        ? _storage.GetPublicUrl(m.ThumbnailObjectKey)
+                        : null,
+
+                    Kind = m.Kind.ToString(),
+                    Purpose = m.Purpose.ToString(),
+
+                    OriginalFileName = m.OriginalFileName,
+                    ContentType = m.ContentType,
+                    SizeBytes = m.SizeBytes,
+
+                    Width = m.Width,
+                    Height = m.Height,
+                    DurationSeconds = m.DurationSeconds,
+
+                    CreatedAt = m.CreatedAt
+                })
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<MediaResponse?> MarkUploadCompleteAsync(Guid mediaId, Guid userId, CancellationToken cancellationToken = default)
+        {
+            var media = await _db.Media
+                .FirstOrDefaultAsync(m => m.Id == mediaId && m.OwnerId == userId, cancellationToken);
+
+            if (media is null) return null;
+
+            if (media.Status != MediaStatus.Pending)
+                throw new InvalidOperationException("Media upload is not pending.");
+
+            var exists = await _storage.ExistsAsync(media.ObjectKey, cancellationToken);
+            if (!exists) throw new InvalidOperationException("Uploaded file was not found in storage");
+
+            media.Status = MediaStatus.Ready;
+            media.UploadedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return ToResponse(media);
+
+        }
+        public async Task DeleteAsync(Guid mediaId, Guid userId, CancellationToken cancellationToken = default)
+        {
+            var media = await _db.Media
+                .FirstOrDefaultAsync(m => m.Id == mediaId && m.OwnerId == userId, cancellationToken);
+
+            if (media is null)
+                throw new InvalidOperationException("Media not found.");
+
+            if (media.Status == MediaStatus.Deleted)
+                return;
+
+            if (!string.IsNullOrWhiteSpace(media.ObjectKey))
+            {
+                var exists = await _storage.ExistsAsync(media.ObjectKey, cancellationToken);
+                if (exists)
+                {
+                    await _storage.DeleteAsync(media.ObjectKey, cancellationToken);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(media.ThumbnailObjectKey))
+            {
+                var thumbExists = await _storage.ExistsAsync(media.ThumbnailObjectKey, cancellationToken);
+                if (thumbExists)
+                {
+                    await _storage.DeleteAsync(media.ThumbnailObjectKey, cancellationToken);
+                }
+            }
+
+            media.Status = MediaStatus.Deleted;
+            media.DeletedAt = DateTime.UtcNow;
+            media.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        private static MediaKind DetermineKind(string contentType)
+        {
+            if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                return MediaKind.Image;
+            if(contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
+                return MediaKind.Video;
+
+            throw new InvalidOperationException("Unsupported media type.");
+        }
+
+        private static void ValidateRequest(CreateMediaUploadRequest request)
+        {
+            if(request is null)
+                throw new ArgumentNullException(nameof(request));
+
+            if (string.IsNullOrWhiteSpace(request.FileName))
+                throw new InvalidOperationException("File name is required.");
+
+            if (string.IsNullOrWhiteSpace(request.ContentType))
+                throw new InvalidOperationException("Content type is required.");
+
+            if (request.SizeBytes <= 0)
+                throw new InvalidOperationException("File must not be empty.");
+        }
+
+        private static void ValidateAllowedContentType(MediaKind kind, string contentType)
+        {
+            var isAllowed = kind switch
+            {
+                MediaKind.Image => AllowedImageTypes.Contains(contentType),
+                MediaKind.Video => AllowedVideoTypes.Contains(contentType),
+                _ => false
+            };
+
+            if (!isAllowed)
+                throw new InvalidOperationException("Unsupported file type.");
+        }
+        private void ValidateFileSize(MediaKind kind, MediaPurpose purpose, long sizeBytes)
+        {
+            if (sizeBytes <= 0)
+                throw new InvalidOperationException("File must not be empty.");
+
+            switch (purpose)
+            {
+                case MediaPurpose.ProfilePicture:
+                    if (kind != MediaKind.Image)
+                        throw new InvalidOperationException("Profile avatars must be images.");
+
+                    if (sizeBytes > _mediaOptions.MaxAvatarBytes)
+                        throw new InvalidOperationException("Avatar file is too large.");
+                    break;
+
+
+                case MediaPurpose.Post:
+                case MediaPurpose.Comment:
+                    if (kind == MediaKind.Image && sizeBytes > _mediaOptions.MaxImageBytes)
+                        throw new InvalidOperationException("Image file is too large.");
+
+                    if (kind == MediaKind.Video && sizeBytes > _mediaOptions.MaxVideoBytes)
+                        throw new InvalidOperationException("Video file is too large.");
+                    break;
+
+                default:
+                    throw new InvalidOperationException("Invalid media purpose.");
+            }
+
+        }
+        private async Task ValidateTargetOwnershipAsync(
+            Guid userId,
+            CreateMediaUploadRequest request,
+            CancellationToken cancellationToken)
+        {
+            switch (request.Purpose)
+            {
+                case MediaPurpose.Post:
+                    if (request.PostId.HasValue)
+                    {
+                        var ownsPost = await _db.Posts
+                            .AnyAsync(p => p.Id == request.PostId.Value && p.UserId == userId, cancellationToken);
+
+                        if (!ownsPost)
+                            throw new InvalidOperationException("Post not found or not owned by current user.");
+                    }
+                    break;
+
+                case MediaPurpose.Comment:
+                    if (request.CommentId.HasValue)
+                    {
+                        var ownsComment = await _db.Comments
+                            .AnyAsync(c => c.Id == request.CommentId.Value && c.UserId == userId, cancellationToken);
+
+                        if (!ownsComment)
+                            throw new InvalidOperationException("Comment not found or not owned by current user.");
+                    }
+                    break;
+
+                case MediaPurpose.ProfilePicture:
+                    if (request.ProfileId.HasValue)
+                    {
+                        var ownsProfile = await _db.Profiles
+                            .AnyAsync(p => p.UserId == request.ProfileId.Value && p.UserId == userId, cancellationToken);
+
+                        if (!ownsProfile)
+                            throw new InvalidOperationException("Profile not found or not owned by current user.");
+                    }
+                    break;
+            }
+
+        }
+        private async Task ValidatePurposeLimitsAsync(
+           Guid userId,
+           CreateMediaUploadRequest request,
+           MediaKind kind,
+           CancellationToken cancellationToken)
+        {
+            if (request.Purpose == MediaPurpose.Post && request.PostId.HasValue)
+            {
+                var videoCount = await _db.Media
+                    .CountAsync(m =>
+                        m.PostId == request.PostId.Value &&
+                        m.Status != MediaStatus.Deleted &&
+                        m.Kind == MediaKind.Video,
+                        cancellationToken);
+
+                var imageCount = await _db.Media
+                    .CountAsync(m =>
+                        m.PostId == request.PostId.Value &&
+                        m.Status != MediaStatus.Deleted &&
+                        m.Kind == MediaKind.Image,
+                        cancellationToken);
+
+                if (videoCount >= _mediaOptions.MaxPostVideoCount)
+                    throw new InvalidOperationException("Post media limit reached.");
+
+                if (imageCount >= _mediaOptions.MaxPostImageCount)
+                    throw new InvalidOperationException("Post media limit reached.");
+
+                
+            }
+
+            if (request.Purpose == MediaPurpose.ProfilePicture && request.ProfileId.HasValue)
+            {
+                var existing = await _db.Media
+                    .AnyAsync(m =>
+                        m.ProfileId == request.ProfileId.Value &&
+                        m.Purpose == MediaPurpose.ProfilePicture &&
+                        m.Status != MediaStatus.Deleted,
+                        cancellationToken);
+
+                if (existing)
+                    throw new InvalidOperationException("Profile already has picture media record.");
+            }
+
+        }
+
+        private static string BuildObjectKey(
+            Guid userId,
+            Guid mediaId,
+            CreateMediaUploadRequest request,
+            MediaKind kind)
+        {
+            var extension = GetExtensionForContentType(request.ContentType, request.FileName);
+
+            return request.Purpose switch
+            {
+                MediaPurpose.Post => request.PostId.HasValue
+                    ? $"users/{userId}/posts/{request.PostId.Value}/media/{mediaId}{extension}"
+                    : $"users/{userId}/posts/unattached/media/{mediaId}{extension}",
+
+                MediaPurpose.Comment => request.CommentId.HasValue
+                    ? $"users/{userId}/comments/{request.CommentId.Value}/media/{mediaId}{extension}"
+                    : $"users/{userId}/comments/unattached/media/{mediaId}{extension}",
+
+                MediaPurpose.ProfilePicture =>
+                    $"users/{userId}/profile/picture/{mediaId}{extension}",
+
+
+                _ => throw new InvalidOperationException("Invalid media purpose.")
+            };
+        }
+
+        private static string GetExtensionForContentType(string contentType, string fileName)
+        {
+            return contentType.ToLowerInvariant() switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/webp" => ".webp",
+                "video/mp4" => ".mp4",
+                "video/webm" => ".webm",
+                "video/quicktime" => ".mov",
+                _ => Path.GetExtension(fileName)
+            };
+        }
+
+        private MediaResponse ToResponse(Models.Media media)
+        {
+            return new MediaResponse
+            {
+                Id = media.Id,
+                Url = _storage.GetPublicUrl(media.ObjectKey),
+                ThumbnailUrl = media.ThumbnailObjectKey != null
+                    ? _storage.GetPublicUrl(media.ThumbnailObjectKey)
+                    : null,
+
+                Kind = media.Kind.ToString(),
+                Purpose = media.Purpose.ToString(),
+
+                OriginalFileName = media.OriginalFileName,
+                ContentType = media.ContentType,
+                SizeBytes = media.SizeBytes,
+
+                Width = media.Width,
+                Height = media.Height,
+                DurationSeconds = media.DurationSeconds,
+
+                CreatedAt = media.CreatedAt
+            };
+        }
+    }
+
+}
+
+

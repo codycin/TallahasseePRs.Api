@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TallahasseePRs.Api.DTOs.Judging;
 using TallahasseePRs.Api.DTOs.Posts;
 using TallahasseePRs.Api.Services;
 using TallahasseePRs.Api.Services.PostServices;
@@ -85,5 +86,17 @@ public sealed class PostsController : ControllerBase
             return Forbid();
         }
     }
-    //Securly get user!
+    [HttpPut("{id:guid}/judge")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Judge(Guid id, [FromBody] JudgeRequest request)
+    {
+        var result = await _posts.JudgeAsync(id, request, _currentUser.GetUserId());
+
+        if (result is null)
+            return NotFound();
+
+        return Ok(result);
+    }
+
+
 }

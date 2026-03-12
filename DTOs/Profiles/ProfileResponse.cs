@@ -1,4 +1,5 @@
-﻿using TallahasseePRs.Api.Models.Users;
+﻿using TallahasseePRs.Api.DTOs.Media;
+using TallahasseePRs.Api.Models.Users;
 
 namespace TallahasseePRs.Api.DTOs.Profiles
 {
@@ -6,7 +7,7 @@ namespace TallahasseePRs.Api.DTOs.Profiles
     {
         public Guid UserId { get; set; }
         public string DisplayName { get; set; } = string.Empty;
-        public string? PfpUrl { get; set; }
+        public MediaResponse? ProfilePicture { get; set; }
         public string? HomeGym { get; set; }
         public string? LifterType { get; set; }
         public string? SpecialtyLifts { get; set; }

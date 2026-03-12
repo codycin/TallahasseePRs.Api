@@ -1,4 +1,5 @@
-﻿using TallahasseePRs.Api.Models.Enums;
+﻿using TallahasseePRs.Api.DTOs.Media;
+using TallahasseePRs.Api.Models.Enums;
 
 namespace TallahasseePRs.Api.DTOs.Posts
 {
@@ -10,7 +11,6 @@ namespace TallahasseePRs.Api.DTOs.Posts
 
         public string Title { get; set; } = "";
         public string Description { get; set; } = "";
-        public string VideoUrl { get; set; } = "";
 
         public decimal Weight { get; set; }
         public string Unit { get; set; } = "lb";
@@ -28,5 +28,8 @@ namespace TallahasseePRs.Api.DTOs.Posts
         public int VoteCount { get; set; } 
 
         public VoteValue? MyVoteValue { get; set; }
+
+        public List<MediaResponse> Media { get; set; } = new();
+
     }
 }

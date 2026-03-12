@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TallahasseePRs.Api.Data;
@@ -11,9 +12,11 @@ using TallahasseePRs.Api.Data;
 namespace TallahasseePRs.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260307003130_AddNotifications")]
+    partial class AddNotifications
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -43,120 +46,6 @@ namespace TallahasseePRs.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Lifts");
-                });
-
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Media", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BlurHash")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Bucket")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid?>("CommentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<double?>("DurationSeconds")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("ETag")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<int?>("Height")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("Kind")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ObjectKey")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<string>("OriginalFileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PostId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Purpose")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Sha256Hash")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("StorageProvider")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ThumbnailObjectKey")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("UploadedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("Width")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CommentId");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("OwnerId");
-
-                    b.HasIndex("PostId");
-
-                    b.HasIndex("ProfileId");
-
-                    b.HasIndex("Sha256Hash");
-
-                    b.ToTable("Media");
                 });
 
             modelBuilder.Entity("TallahasseePRs.Api.Models.Notifications.Notification", b =>
@@ -276,6 +165,10 @@ namespace TallahasseePRs.Api.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("VideoUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<decimal>("Weight")
                         .HasColumnType("numeric");
 
@@ -358,15 +251,13 @@ namespace TallahasseePRs.Api.Migrations
                     b.Property<string>("MeasurmentsJson")
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("ProfilePictureId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("PfpUrl")
+                        .HasColumnType("text");
 
                     b.Property<string>("SpecialtyLifts")
                         .HasColumnType("text");
 
                     b.HasKey("UserId");
-
-                    b.HasIndex("ProfilePictureId");
 
                     b.ToTable("Profiles");
                 });
@@ -437,37 +328,6 @@ namespace TallahasseePRs.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("TallahasseePRs.Api.Models.Media", b =>
-                {
-                    b.HasOne("TallahasseePRs.Api.Models.Posts.Comment", "Comment")
-                        .WithMany("MediaItems")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("TallahasseePRs.Api.Models.Users.User", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TallahasseePRs.Api.Models.Posts.PRPost", "Post")
-                        .WithMany("MediaItems")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("TallahasseePRs.Api.Models.Users.Profile", "Profile")
-                        .WithMany()
-                        .HasForeignKey("ProfileId");
-
-                    b.Navigation("Comment");
-
-                    b.Navigation("Owner");
-
-                    b.Navigation("Post");
-
-                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("TallahasseePRs.Api.Models.Notifications.Notification", b =>
@@ -587,18 +447,11 @@ namespace TallahasseePRs.Api.Migrations
 
             modelBuilder.Entity("TallahasseePRs.Api.Models.Users.Profile", b =>
                 {
-                    b.HasOne("TallahasseePRs.Api.Models.Media", "ProfilePicture")
-                        .WithMany()
-                        .HasForeignKey("ProfilePictureId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("TallahasseePRs.Api.Models.Users.User", "User")
                         .WithOne()
                         .HasForeignKey("TallahasseePRs.Api.Models.Users.Profile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("ProfilePicture");
 
                     b.Navigation("User");
                 });
@@ -616,8 +469,6 @@ namespace TallahasseePRs.Api.Migrations
 
             modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.Comment", b =>
                 {
-                    b.Navigation("MediaItems");
-
                     b.Navigation("Notifications");
 
                     b.Navigation("Replies");
@@ -626,8 +477,6 @@ namespace TallahasseePRs.Api.Migrations
             modelBuilder.Entity("TallahasseePRs.Api.Models.Posts.PRPost", b =>
                 {
                     b.Navigation("Comments");
-
-                    b.Navigation("MediaItems");
 
                     b.Navigation("Notifications");
                 });

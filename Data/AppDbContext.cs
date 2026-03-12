@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Runtime.Intrinsics.Arm;
 using TallahasseePRs.Api.Models;
 using TallahasseePRs.Api.Models.Notifications;
 using TallahasseePRs.Api.Models.Posts;
@@ -20,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Follow> Follows => Set<Follow>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Media> Media => Set<Media>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -43,6 +43,14 @@ public class AppDbContext : DbContext
             .WithOne()
             .HasForeignKey<Profile>(p => p.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Profile>(entity =>
+        {
+            entity.HasOne(p => p.ProfilePicture)
+                  .WithMany()
+                  .HasForeignKey(p => p.ProfilePictureId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
 
         // PR POSTS
         modelBuilder.Entity<PRPost>()
@@ -116,6 +124,103 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<RefreshToken>()
             .HasIndex(r => r.TokenHash)
             .IsUnique();
+
+        //Notifications
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+
+            entity.Property(n => n.Message)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(n => n.Type)
+                .IsRequired();
+
+            entity.Property(n => n.IsRead)
+                .IsRequired();
+
+            entity.Property(n => n.CreatedAt)
+                .IsRequired();
+
+            entity.HasOne(n => n.Recipient)
+                .WithMany(u => u.ReceivedNotifications)
+                .HasForeignKey(n => n.RecipientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(n => n.Actor)
+                .WithMany(u => u.SentNotifications)
+                .HasForeignKey(n => n.ActorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(n => n.Post)
+                 .WithMany(p => p.Notifications)
+                 .HasForeignKey(n => n.PostId)
+                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(n => n.Comment)
+                .WithMany(c => c.Notifications)
+                .HasForeignKey(n => n.CommentId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+        //Media
+        modelBuilder.Entity<Media>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+
+            entity.Property(m => m.StorageProvider)
+                .HasMaxLength(50);
+
+            entity.Property(m => m.Bucket)
+                .HasMaxLength(200);
+
+            entity.Property(m => m.ObjectKey)
+                .HasMaxLength(1024)
+                .IsRequired();
+
+            entity.Property(m => m.OriginalFileName)
+                .HasMaxLength(255);
+
+            entity.Property(m => m.ContentType)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(m => m.Sha256Hash)
+                .HasMaxLength(128);
+
+            entity.Property(m => m.ETag)
+                .HasMaxLength(128);
+
+            entity.Property(m => m.ThumbnailObjectKey)
+                .HasMaxLength(1024);
+
+            entity.HasIndex(m => m.OwnerId);
+            entity.HasIndex(m => m.PostId);
+            entity.HasIndex(m => m.CommentId);
+            entity.HasIndex(m => m.ProfileId);
+            entity.HasIndex(m => m.CreatedAt);
+            entity.HasIndex(m => m.Sha256Hash);
+
+            entity.HasOne(m => m.Owner)
+                .WithMany()
+                .HasForeignKey(m => m.OwnerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(m => m.Post)
+                .WithMany(p => p.MediaItems)
+                .HasForeignKey(m => m.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.Comment)
+                .WithMany(c => c.MediaItems)
+                .HasForeignKey(m => m.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.Post)
+                .WithMany(p => p.MediaItems)
+                .HasForeignKey(m => m.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
 
