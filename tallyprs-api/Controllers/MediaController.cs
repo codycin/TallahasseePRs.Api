@@ -1,6 +1,8 @@
 ﻿using Azure.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.DTOs.Media;
 using TallahasseePRs.Api.Services;
 using TallahasseePRs.Api.Services.Media;
@@ -14,11 +16,13 @@ namespace TallahasseePRs.Api.Controllers
     {
         private readonly IMediaService _mediaService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly AppDbContext _db;
 
-        public MediaController(IMediaService mediaService, ICurrentUserService currentUserService)
+        public MediaController(AppDbContext db, IMediaService mediaService, ICurrentUserService currentUserService)
         {
             _mediaService = mediaService;
             _currentUserService = currentUserService;
+            _db = db;
         }
 
         [HttpPost("uploads")]
@@ -36,7 +40,7 @@ namespace TallahasseePRs.Api.Controllers
         public async Task<ActionResult<MediaResponse>> CompleteUpload(Guid id, CancellationToken cancellationToken)
         {
             var userId = _currentUserService.GetUserId();
-            var result = await _mediaService.MarkUploadCompleteAsync(userId, id, cancellationToken);
+            var result = await _mediaService.MarkUploadCompleteAsync(id, userId, cancellationToken);
 
             if (result is null) return NotFound();
 
@@ -77,6 +81,30 @@ namespace TallahasseePRs.Api.Controllers
             await _mediaService.DeleteAsync(userId,id, cancellationToken);
 
             return NoContent();
+        }
+
+        [HttpGet("{mediaId:guid}/debug")]
+        public async Task<IActionResult> DebugMedia(Guid mediaId, CancellationToken cancellationToken)
+        {
+            var userId = _currentUserService.GetUserId();
+
+            var media = await _db.Media
+                .AsNoTracking()
+                .Where(m => m.Id == mediaId)
+                .Select(m => new
+                {
+                    m.Id,
+                    m.OwnerId,
+                    m.ObjectKey,
+                    m.Status,
+                    CurrentUserId = userId
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (media is null)
+                return NotFound(new { message = "No media row found at all." });
+
+            return Ok(media);
         }
     }
 }

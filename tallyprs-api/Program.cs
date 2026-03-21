@@ -1,7 +1,9 @@
+using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
@@ -25,8 +27,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
-// Swagger Services
 builder.Services.AddControllers();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -35,7 +48,7 @@ builder.Services.AddHttpContextAccessor();
 // Auth/User Services
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.Configure<JwtOptions>(
-    builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFollowService, FollowService>();
@@ -60,19 +73,26 @@ builder.Services.Configure<MediaOptions>(
 builder.Services.AddScoped<IMediaService, MediaService>();
 
 // Storage services
-builder.Services.Configure<R2Options>(
-    builder.Configuration.GetSection("R2"));
 
-var storageProvider = builder.Configuration["Storage:Provider"];
+builder.Services.Configure<R2Options>(builder.Configuration.GetSection("R2"));
 
-if (string.Equals(storageProvider, "Local", StringComparison.OrdinalIgnoreCase))
+builder.Services.AddSingleton<IAmazonS3>(sp =>
 {
-    builder.Services.AddScoped<IObjectStorage, LocalStorageService>();
-}
-else
-{
-    builder.Services.AddScoped<IObjectStorage, CloudflareR2StorageService>();
-}
+    var options = sp.GetRequiredService<IOptions<R2Options>>().Value;
+
+    var config = new AmazonS3Config
+    {
+        ServiceURL = $"https://{options.AccountId}.r2.cloudflarestorage.com",
+        ForcePathStyle = true
+    };
+
+    return new AmazonS3Client(
+        options.AccessKeyId,
+        options.SecretAccessKey,
+        config);
+});
+
+builder.Services.AddScoped<IObjectStorage, CloudflareR2StorageService>(); 
 
 // JWT config from appsettings json
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -108,6 +128,9 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.UseCors("Frontend");
+
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -128,14 +151,6 @@ using (var scope = app.Services.CreateScope())
     await AdminSeeder.SeedAsync(db);
 }
 
-var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "LocalUploads");
-Directory.CreateDirectory(uploadsPath);
-
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(uploadsPath),
-    RequestPath = "/uploads"
-});
 
 if (app.Environment.IsDevelopment())
 {

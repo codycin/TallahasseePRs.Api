@@ -9,12 +9,12 @@ namespace TallahasseePRs.Api.Models.Posts
         public Guid Id { get; set; }
 
         public Guid UserId { get; set; }
-        public Guid LiftId { get; set; }
+        public Guid? LiftId { get; set; }
 
         public string Title { get; set; } = "";
         public string Description { get; set; } = "";
-        public decimal Weight { get; set; }
-        public string Unit { get; set; } = "lb";
+        public decimal? Weight { get; set; } = 0;
+        public string? Unit { get; set; } = "lb";
 
         public PRstatus Status { get; set; } = PRstatus.Pending;
 
@@ -25,7 +25,7 @@ namespace TallahasseePRs.Api.Models.Posts
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public User User { get; set; } = null!;
-        public Lift Lift { get; set; } = null!;
+        public Lift? Lift { get; set; } 
 
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();

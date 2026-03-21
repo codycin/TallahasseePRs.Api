@@ -33,15 +33,7 @@ namespace TallahasseePRs.Api.Services.PostServices
         //Create post
         public async Task<PostResponse> CreateAsync(Guid userId, CreatePostRequest request, CancellationToken cancellationToken = default)
         {
-            //Check if lift exists through searching database using await, passing table
-            //any async, search for every lifts id compare to LiftId from the Create post Request
-            var liftExists = await _db.Lifts.AnyAsync(l => l.Id == request.LiftId);
-
-            if (!liftExists)
-            {
-                throw new InvalidOperationException("LiftID does not exist");
-
-            }
+            
 
             var mediaItems = await ValidateAndLoadMediaAsync(userId, request.MediaIds, currentPostId: null, cancellationToken);
 
@@ -95,6 +87,7 @@ namespace TallahasseePRs.Api.Services.PostServices
                     UserId = p.UserId,
                     LiftId = p.LiftId,
                     Title = p.Title,
+                    UserName = p.User.UserName,
                     Description = p.Description,
                     Weight = p.Weight,
                     Unit = p.Unit,
@@ -227,6 +220,7 @@ namespace TallahasseePRs.Api.Services.PostServices
                 Id = p.Id,
                 UserId = p.UserId,
                 LiftId = p.LiftId,
+                UserName = p.User.UserName,
                 Title = p.Title,
                 Description = p.Description,
                 Weight = p.Weight,

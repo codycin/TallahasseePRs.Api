@@ -59,11 +59,6 @@ public class AppDbContext : DbContext
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<PRPost>()
-            .HasOne(p => p.Lift)
-            .WithMany()
-            .HasForeignKey(p => p.LiftId)
-            .OnDelete(DeleteBehavior.Restrict);
 
         // COMMENTS
         modelBuilder.Entity<Comment>()

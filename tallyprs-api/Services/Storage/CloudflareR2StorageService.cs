@@ -1,9 +1,6 @@
-﻿using Amazon;
-using Amazon.Runtime;
-using Amazon.S3;
+﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Options;
-using System.Runtime.Intrinsics.Arm;
 using TallahasseePRs.Api.Data.Configurations;
 
 namespace TallahasseePRs.Api.Services.Storage
@@ -13,8 +10,11 @@ namespace TallahasseePRs.Api.Services.Storage
         private readonly IAmazonS3 _s3;
         private readonly R2Options _options;
 
-        public CloudflareR2StorageService(IOptions<R2Options> options)
+        public CloudflareR2StorageService(
+            IAmazonS3 s3,
+            IOptions<R2Options> options)
         {
+            _s3 = s3;
             _options = options.Value;
 
             if (string.IsNullOrWhiteSpace(_options.AccountId))
@@ -29,29 +29,25 @@ namespace TallahasseePRs.Api.Services.Storage
             if (string.IsNullOrWhiteSpace(_options.BucketName))
                 throw new InvalidOperationException("R2 BucketName is not configured.");
 
-            var credentials = new BasicAWSCredentials(
-                _options.AccessKeyId,
-                _options.SecretAccessKey);
-
-            var config = new AmazonS3Config
-            {
-                ServiceURL = _options.Endpoint,
-                ForcePathStyle = true,
-
-            };
-            _s3 = new AmazonS3Client(credentials, config);
-
+            if (string.IsNullOrWhiteSpace(_options.PublicBaseUrl))
+                throw new InvalidOperationException("R2 PublicBaseUrl is not configured.");
         }
 
-        public async Task<PutObjectResult> UploadAsync(Stream stream,
+        public async Task<PutObjectResult> UploadAsync(
+            Stream stream,
             string objectKey,
             string contentType,
-            IDictionary<string, string>? metedata = null,
+            IDictionary<string, string>? metadata = null,
             CancellationToken cancellationToken = default)
         {
-            if (stream is null) throw new ArgumentNullException(nameof(stream));
-            if (string.IsNullOrWhiteSpace(objectKey)) throw new ArgumentException("Object key is required", nameof(objectKey));
-            if (string.IsNullOrWhiteSpace(contentType)) throw new ArgumentException("Content type is required", nameof(contentType));
+            if (stream is null)
+                throw new ArgumentNullException(nameof(stream));
+
+            if (string.IsNullOrWhiteSpace(objectKey))
+                throw new ArgumentException("Object key is required.", nameof(objectKey));
+
+            if (string.IsNullOrWhiteSpace(contentType))
+                throw new ArgumentException("Content type is required.", nameof(contentType));
 
             var request = new PutObjectRequest
             {
@@ -64,11 +60,11 @@ namespace TallahasseePRs.Api.Services.Storage
 
             request.Headers.CacheControl = "public, max-age=31536000, immutable";
 
-            if (metedata is not null)
+            if (metadata is not null)
             {
-                foreach (var kvp in metedata)
+                foreach (var kvp in metadata)
                 {
-                    if (!string.IsNullOrWhiteSpace(kvp.Key) && kvp.Value != null)
+                    if (!string.IsNullOrWhiteSpace(kvp.Key) && kvp.Value is not null)
                         request.Metadata[kvp.Key] = kvp.Value;
                 }
             }
@@ -84,7 +80,8 @@ namespace TallahasseePRs.Api.Services.Storage
 
         public async Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(objectKey)) throw new ArgumentException("Object key is required", nameof(objectKey));
+            if (string.IsNullOrWhiteSpace(objectKey))
+                throw new ArgumentException("Object key is required.", nameof(objectKey));
 
             var request = new DeleteObjectRequest
             {
@@ -119,20 +116,21 @@ namespace TallahasseePRs.Api.Services.Storage
                 return false;
             }
         }
+
         public string GetPublicUrl(string objectKey)
         {
             if (string.IsNullOrWhiteSpace(objectKey))
-                throw new ArgumentException("Object key is required", nameof(objectKey));
+                throw new ArgumentException("Object key is required.", nameof(objectKey));
+
             if (string.IsNullOrWhiteSpace(_options.PublicBaseUrl))
-                throw new ArgumentException("R2 PublicBaseUrl missing");
+                throw new InvalidOperationException("R2 PublicBaseUrl is missing.");
 
             var baseUrl = _options.PublicBaseUrl.TrimEnd('/');
             var key = NormalizeKey(objectKey);
 
-            return $"{baseUrl}/{Uri.EscapeDataString(key).Replace("%2f", "/")}";
+            return $"{baseUrl}/{Uri.EscapeDataString(key).Replace("%2F", "/")}";
         }
 
-        //For direct uploads to r2
         public Task<PresignedUploadResult> CreatePresignedUploadAsync(
             string objectKey,
             string contentType,
@@ -150,7 +148,7 @@ namespace TallahasseePRs.Api.Services.Storage
 
             var expiresAt = DateTime.UtcNow.Add(expiresIn);
 
-            var result = new GetPreSignedUrlRequest
+            var request = new GetPreSignedUrlRequest
             {
                 BucketName = _options.BucketName,
                 Key = NormalizeKey(objectKey),
@@ -159,7 +157,7 @@ namespace TallahasseePRs.Api.Services.Storage
                 ContentType = contentType
             };
 
-            var url = _s3.GetPreSignedURL(result);
+            var url = _s3.GetPreSignedURL(request);
 
             return Task.FromResult(new PresignedUploadResult
             {

@@ -7,13 +7,14 @@ namespace TallahasseePRs.Api.DTOs.Posts
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
-        public Guid LiftId { get; set; }
+        public Guid? LiftId { get; set; }
 
         public string Title { get; set; } = "";
+        public string UserName { get; set; } = "";
         public string Description { get; set; } = "";
 
-        public decimal Weight { get; set; }
-        public string Unit { get; set; } = "lb";
+        public decimal? Weight { get; set; } = 0;
+        public string? Unit { get; set; } = "lb";
 
         public PRstatus Status { get; set; }
 

@@ -143,16 +143,27 @@ namespace TallahasseePRs.Api.Services.Media
 
         public async Task<MediaResponse?> MarkUploadCompleteAsync(Guid mediaId, Guid userId, CancellationToken cancellationToken = default)
         {
+            Console.WriteLine($"MarkUploadCompleteAsync called with mediaId={mediaId}, userId={userId}");
+
             var media = await _db.Media
                 .FirstOrDefaultAsync(m => m.Id == mediaId && m.OwnerId == userId, cancellationToken);
 
-            if (media is null) return null;
+            if (media is null)
+            {
+                Console.WriteLine("Media not found for this user.");
+                return null;
+            }
+
+            Console.WriteLine($"Found media row. ObjectKey={media.ObjectKey}, Status={media.Status}");
 
             if (media.Status != MediaStatus.Pending)
                 throw new InvalidOperationException("Media upload is not pending.");
 
             var exists = await _storage.ExistsAsync(media.ObjectKey, cancellationToken);
-            if (!exists) throw new InvalidOperationException("Uploaded file was not found in storage");
+            Console.WriteLine($"Storage exists check: {exists}");
+
+            if (!exists)
+                throw new InvalidOperationException("Uploaded file was not found in storage");
 
             media.Status = MediaStatus.Ready;
             media.UploadedAt = DateTime.UtcNow;
@@ -160,7 +171,6 @@ namespace TallahasseePRs.Api.Services.Media
             await _db.SaveChangesAsync(cancellationToken);
 
             return ToResponse(media);
-
         }
         public async Task DeleteAsync(Guid mediaId, Guid userId, CancellationToken cancellationToken = default)
         {
@@ -329,13 +339,13 @@ namespace TallahasseePRs.Api.Services.Media
                         m.Kind == MediaKind.Image,
                         cancellationToken);
 
-                if (videoCount >= _mediaOptions.MaxPostVideoCount)
-                    throw new InvalidOperationException("Post media limit reached.");
+                if (kind == MediaKind.Video && videoCount >= _mediaOptions.MaxPostVideoCount)
+                    throw new InvalidOperationException("Post video limit reached.");
 
-                if (imageCount >= _mediaOptions.MaxPostImageCount)
-                    throw new InvalidOperationException("Post media limit reached.");
+                if (kind == MediaKind.Image && imageCount >= _mediaOptions.MaxPostImageCount)
+                    throw new InvalidOperationException("Post image limit reached.");
 
-                
+
             }
 
             if (request.Purpose == MediaPurpose.ProfilePicture && request.ProfileId.HasValue)

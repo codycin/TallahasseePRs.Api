@@ -259,7 +259,7 @@ namespace TallahasseePRs.Api.Migrations
                     b.Property<Guid?>("JudgedByAdminID")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("LiftId")
+                    b.Property<Guid?>("LiftId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Status")
@@ -270,13 +270,12 @@ namespace TallahasseePRs.Api.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Unit")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("Weight")
+                    b.Property<decimal?>("Weight")
                         .HasColumnType("numeric");
 
                     b.HasKey("Id");
@@ -532,9 +531,7 @@ namespace TallahasseePRs.Api.Migrations
                 {
                     b.HasOne("TallahasseePRs.Api.Models.Lift", "Lift")
                         .WithMany()
-                        .HasForeignKey("LiftId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("LiftId");
 
                     b.HasOne("TallahasseePRs.Api.Models.Users.User", "User")
                         .WithMany()

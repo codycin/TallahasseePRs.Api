@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { getAccessTokenFromStorage } from "@/lib/storage/authStorage";
+
+import AuthenticatedNavbar from "@/components/layout/AuthenticatedNavbar";
+import AuthenticatedFooter from "@/components/layout/AuthenticatedFooter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,12 +26,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const token = getAccessTokenFromStorage();
+  const isAuthenticated = !!token;
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <AuthenticatedNavbar />
         {children}
+        <AuthenticatedFooter />
       </body>
     </html>
   );

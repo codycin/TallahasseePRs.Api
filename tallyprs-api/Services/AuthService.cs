@@ -13,10 +13,8 @@ namespace TallahasseePRs.Api.Services
         public async Task<AuthResponse?> LoginAsync(LoginRequest dto)
         {
 
-            var user = await context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-         
-
-
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Email == dto.EmailOrUserName || u.UserName == dto.EmailOrUserName);
+                    
             if (user is null) return null;
 
             var result = hasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
@@ -33,7 +31,8 @@ namespace TallahasseePRs.Api.Services
                 User = new UserResponse
                 {
                     Id = user.Id,
-                    Email = user.Email
+                    Email = user.Email,
+                    UserName = user.UserName
                 },
                 AccessToken = token,
                 AccessTokenExpiration = expiresAt,
@@ -45,8 +44,12 @@ namespace TallahasseePRs.Api.Services
         {
             if (await context.Users.AnyAsync(u => u.Email == dto.Email)) return null;
 
+            if (await context.Users.AnyAsync(u => u.UserName == dto.UserName)) return null;
+
             var user = new User { Email = dto.Email, Role = "Member" };
+            user.UserName = dto.UserName;
             user.PasswordHash = hasher.HashPassword(user, dto.Password);
+            user.Id = Guid.NewGuid();
 
             var profile = new Profile { UserId = user.Id };
 
@@ -59,7 +62,7 @@ namespace TallahasseePRs.Api.Services
 
             return new AuthResponse
             {
-                User = new UserResponse { Id = user.Id, Email = user.Email },
+                User = new UserResponse { Id = user.Id, Email = user.Email, UserName = user.UserName },
                 AccessToken = token,
                 AccessTokenExpiration = expiresAt,
                 RefreshToken = rawRefresh
@@ -107,7 +110,7 @@ namespace TallahasseePRs.Api.Services
 
             return new AuthResponse
             {
-                User = new UserResponse { Id = user.Id, Email = user.Email },
+                User = new UserResponse { Id = user.Id, Email = user.Email, UserName = user.UserName },
                 AccessToken = jwt,
                 AccessTokenExpiration = jwtExp,
                 RefreshToken = newRaw

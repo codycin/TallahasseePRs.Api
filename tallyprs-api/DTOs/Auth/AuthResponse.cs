@@ -13,6 +13,7 @@
     public sealed class UserResponse
     {
         public string Email { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
         public Guid Id { get; set; }
     }
 }

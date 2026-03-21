@@ -30,6 +30,7 @@ namespace TallahasseePRs.Api.Services.FeedServices
 
             IQueryable<PRPost> q = _db.Posts
                 .AsNoTracking()
+                .Include(p => p.User)
                 .Include(p => p.MediaItems);
 
 
@@ -108,6 +109,7 @@ namespace TallahasseePRs.Api.Services.FeedServices
                     UserId = post.UserId,
                     LiftId = post.LiftId,
                     Title = post.Title,
+                    UserName = post.User.UserName,
                     Description = post.Description,
                     Media = post.MediaItems
                         .OrderBy(m => m.SortOrder)

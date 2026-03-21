@@ -19,7 +19,7 @@ namespace TallahasseePRs.Api.Controllers
             var result = await authService.RegisterAsync(request);
             if (result == null)
             {
-                return BadRequest("Username already exists.");
+                return BadRequest("Username or Email already exists.");
             }
             return Ok(result);
         }
@@ -47,8 +47,6 @@ namespace TallahasseePRs.Api.Controllers
             if (!success)
                 return BadRequest("Invalid refresh token");
             return Ok();
-
-
 
         }
     }
