@@ -3,16 +3,12 @@
 import { useEffect, useState } from "react";
 import { getAccessTokenFromStorage } from "@/lib/storage/authStorage";
 import Footer from "./Footer";
+import { useAuth } from "@/lib/auth/authContext";
 
 export default function AuthenticatedFooter() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isLoggedIn, logout } = useAuth();
 
-  useEffect(() => {
-    const token = getAccessTokenFromStorage();
-    setIsAuthenticated(!!token);
-  }, []);
-
-  if (!isAuthenticated) return null;
+  if (!isLoggedIn) return null;
 
   return <Footer />;
 }

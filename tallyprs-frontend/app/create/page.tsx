@@ -119,7 +119,6 @@ export default function CreatePostPage() {
       selectedFiles.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       setSelectedFiles([]);
 
-      // later you can route to feed or the created post page
       alert("Post created successfully.");
     } catch (error) {
       console.error(error);

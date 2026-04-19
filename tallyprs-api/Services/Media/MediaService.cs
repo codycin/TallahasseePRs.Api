@@ -207,7 +207,21 @@ namespace TallahasseePRs.Api.Services.Media
 
             await _db.SaveChangesAsync(cancellationToken);
         }
+        public async Task DeleteAsAdminAsync(Guid mediaId, CancellationToken cancellationToken = default)
+        {
+            var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
+            if (media == null) return;
 
+            var isStillUsed =
+                await _db.Profiles.AnyAsync(p => p.ProfilePictureId == media.Id, cancellationToken);
+
+            if (isStillUsed)
+                return;
+
+            await _storage.DeleteAsync(media.ObjectKey, cancellationToken);
+            _db.Media.Remove(media);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
         private static MediaKind DetermineKind(string contentType)
         {
             if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))

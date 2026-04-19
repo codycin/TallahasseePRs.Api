@@ -6,6 +6,7 @@ using TallahasseePRs.Api.DTOs.Media;
 using TallahasseePRs.Api.DTOs.Profiles;
 using TallahasseePRs.Api.Models;
 using TallahasseePRs.Api.Models.Users;
+using TallahasseePRs.Api.Services.FollowServices;
 using TallahasseePRs.Api.Services.Storage;
 
 namespace TallahasseePRs.Api.Services.ProfileServices
@@ -14,18 +15,25 @@ namespace TallahasseePRs.Api.Services.ProfileServices
     {
         private readonly AppDbContext _db;
         private readonly IObjectStorage _storage;
+        private readonly IFollowService _follow;
+        private readonly ICurrentUserService _currentUser;
 
-        public ProfileService(AppDbContext appDbContext, IObjectStorage storage)
+        public ProfileService(AppDbContext appDbContext, IObjectStorage storage, IFollowService followService, ICurrentUserService cs)
         {
             _db = appDbContext;
             _storage = storage;
+            _follow = followService;
+            _currentUser = cs;
         }
         public async Task<ProfileResponse?> GetByIdAsync(Guid userId)
         {
-            var profile = await _db.Profiles.Where(p => p.UserId == userId).SingleOrDefaultAsync();
+            var profile = await _db.Profiles.Include(p=>p.ProfilePicture).Where(p => p.UserId == userId).SingleOrDefaultAsync();
             if (profile == null) return null;
 
-            return ToResponse(profile);
+            int followerCount = await _follow.GetFollowersCountAsync(userId);
+            int followingCount = await _follow.GetFollowingCountAsync(userId);
+
+            return ToResponse(profile, followerCount, followingCount);
 
         }
         public async Task<ProfileResponse?> UpdateAsync(Guid userId, UpdateProfileRequest request)
@@ -73,11 +81,18 @@ namespace TallahasseePRs.Api.Services.ProfileServices
 
         public async Task<PublicProfileResponse?> GetPublicByIdAsync(Guid userId)
         {
+            var currentUserId = _currentUser.GetUserId();
+
+
             var p = await _db.Profiles.Include(p=>p.ProfilePicture).SingleOrDefaultAsync(x => x.UserId == userId);
-            return p is null ? null : ToPublicResponse(p);
+            int followerCount = await _follow.GetFollowersCountAsync(userId);
+            int followingCount = await _follow.GetFollowingCountAsync(userId);
+            bool isFollowedByCur = await _db.Follows.AnyAsync(f => f.FollowerId == currentUserId && f.FollowedId == userId);
+
+            return p is null ? null : ToPublicResponse(p,followerCount,followingCount, isFollowedByCur);
         }
 
-        private ProfileResponse ToResponse(Profile profile) => new()
+        private ProfileResponse ToResponse(Profile profile, int followerCount=0, int followingCount=0) => new()
         {
             UserId = profile.UserId,
             DisplayName = profile.DisplayName,
@@ -85,10 +100,11 @@ namespace TallahasseePRs.Api.Services.ProfileServices
             HomeGym = profile.HomeGym,
             LifterType = profile.LifterType,
             SpecialtyLifts = profile.SpecialtyLifts,
-            MeasurementsJson = profile.MeasurmentsJson
-
+            MeasurementsJson = profile.MeasurmentsJson,
+            FollowCount = followerCount,
+            FollowingCount = followingCount
         };
-        private PublicProfileResponse ToPublicResponse(Profile profile) => new()
+        private PublicProfileResponse ToPublicResponse(Profile profile, int followerCount = 0, int followingCount = 0, bool isFollowedByCurrentUser = false) => new()
         {
             UserId = profile.UserId,
             DisplayName = profile.DisplayName,
@@ -96,6 +112,9 @@ namespace TallahasseePRs.Api.Services.ProfileServices
             HomeGym = profile.HomeGym,
             LifterType = profile.LifterType,
             SpecialtyLifts = profile.SpecialtyLifts,
+            FollowCount = followerCount,
+            FollowingCount = followingCount,
+            IsFollowedByCurrentUser = isFollowedByCurrentUser
         };
 
         private MediaResponse? ToMediaResponse(Models.Media? media)

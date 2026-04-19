@@ -106,5 +106,53 @@ namespace TallahasseePRs.Api.Controllers
 
             return Ok(media);
         }
+        [AllowAnonymous]
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllMedia()
+        {
+            var media = await _db.Media
+                .OrderByDescending(m => m.CreatedAt)
+                .Select(m => new
+                {
+                    m.Id,
+                    m.OwnerId,
+                    m.Purpose,
+                    m.Status,
+                    m.PostId,
+                    m.CommentId,
+                    m.ProfileId,
+                    m.CreatedAt,
+                    m.UploadedAt
+                }).Where(m => m.PostId == null && m.ProfileId == null)
+                .ToListAsync();
+
+            return Ok(media);
+        }
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("allUnused")]
+        public async Task<IActionResult> DeleteAllUnused(CancellationToken cancellationToken)
+        {
+            var candidateIds = await _db.Media
+                .Where(m =>
+                    m.PostId == null &&
+                    m.CommentId == null &&
+                    m.ProfileId == null)
+                .OrderByDescending(m => m.CreatedAt)
+                .Select(m => m.Id)
+                .ToListAsync(cancellationToken);
+
+            foreach (var mediaId in candidateIds)
+            {
+                var isUsedAsProfilePicture = await _db.Profiles
+                    .AnyAsync(p => p.ProfilePictureId == mediaId, cancellationToken);
+
+                if (isUsedAsProfilePicture)
+                    continue;
+
+                await _mediaService.DeleteAsAdminAsync(mediaId, cancellationToken);
+            }
+
+            return NoContent();
+        }
     }
 }

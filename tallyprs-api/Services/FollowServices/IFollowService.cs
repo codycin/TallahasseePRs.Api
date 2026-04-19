@@ -6,7 +6,12 @@ namespace TallahasseePRs.Api.Services.FollowServices
     {
         Task<FollowResponse> FollowAsync(Guid User, FollowRequest request);
         Task<FollowResponse?> GetByIdAsync(Guid userId, Guid followId);
-
         Task<bool> UnFollowAsync(Guid FollowerId, Guid FollowedId);
+
+        Task<int> GetFollowersCountAsync(Guid userId);
+        Task<int> GetFollowingCountAsync(Guid userId);
+
+        Task<List<FollowResponse>> GetFollowersByUserAsync(Guid userId);
+        Task<List<FollowResponse>> GetFollowingByUserAsync(Guid userId);
     }
 }

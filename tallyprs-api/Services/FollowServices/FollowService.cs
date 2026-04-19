@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.BearerToken;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using System.Numerics;
@@ -103,5 +104,68 @@ namespace TallahasseePRs.Api.Services.FollowServices
             FollowedAt = follow.CreatedAt
 
         };
+
+        public async Task<int> GetFollowersCountAsync(Guid userId)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if(user == null)
+                throw new InvalidOperationException("Current user not found.");
+
+            int count = await _db.Follows.CountAsync(f => f.FollowedId == userId);
+
+            return count;
+
+        }
+        public async Task<int> GetFollowingCountAsync(Guid userId)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                throw new InvalidOperationException("Current user not found.");
+
+            int count = await _db.Follows.CountAsync(f => f.FollowerId == userId);
+
+            return count;
+        }
+
+        public async Task<List<FollowResponse>> GetFollowersByUserAsync(Guid userId)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                throw new InvalidOperationException("Current user not found.");
+
+            return await _db.Follows
+                .Where(a => a.FollowedId == userId)
+                .Select(f => new FollowResponse //Creates new PostResponse with the selection
+                {
+                    Id = f.Id,
+                    FollowedId = f.FollowedId,
+                    FollowerId = f.FollowerId,
+                    FollowedAt = f.CreatedAt
+
+                }).ToListAsync();
+
+        }
+        public async Task<List<FollowResponse>> GetFollowingByUserAsync(Guid userId)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                throw new InvalidOperationException("Current user not found.");
+
+            return await _db.Follows
+                .Where(a => a.FollowerId == userId)
+                .Select(f => new FollowResponse 
+                {
+                    Id = f.Id,
+                    FollowedId = f.FollowedId,
+                    FollowerId = f.FollowerId,
+                    FollowedAt = f.CreatedAt
+
+                }).ToListAsync();
+
+        }
     }
 }

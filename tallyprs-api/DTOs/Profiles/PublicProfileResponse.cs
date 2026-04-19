@@ -11,5 +11,9 @@ namespace TallahasseePRs.Api.DTOs.Profiles
         public string? HomeGym { get; set; }
         public string? LifterType { get; set; }
         public string? SpecialtyLifts { get; set; }
+        public int FollowCount { get; set; }
+        public int FollowingCount { get; set; }
+        public bool IsFollowedByCurrentUser { get; set; }
+
     }
 }

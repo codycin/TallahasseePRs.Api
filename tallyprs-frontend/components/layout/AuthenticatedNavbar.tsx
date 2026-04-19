@@ -4,16 +4,12 @@ import { useEffect, useState } from "react";
 import { getAccessTokenFromStorage } from "@/lib/storage/authStorage";
 import Navbar from "./Navbar";
 import NavbarGuest from "./NavbarGuest";
+import { useAuth } from "@/lib/auth/authContext";
 
-export default function AuthenticatedFooter() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+export default function AuthenticatedNavbar() {
+  const { isLoggedIn, logout } = useAuth();
 
-  useEffect(() => {
-    const token = getAccessTokenFromStorage();
-    setIsAuthenticated(!!token);
-  }, []);
-
-  if (!isAuthenticated) return <NavbarGuest />;
+  if (!isLoggedIn) return <NavbarGuest />;
 
   return <Navbar />;
 }
