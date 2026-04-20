@@ -54,8 +54,8 @@ namespace TallahasseePRs.Api.Controllers
             var userId = _currentUserService.GetUserId();
 
             var result = await _mediaService.GetByIdAsync(
-                userId,
                 id,
+                userId,
                 cancellationToken);
 
             if (result is null)

@@ -3,6 +3,18 @@ export enum MediaPurpose {
   Comment = 2,
   ProfilePicture = 3,
 }
+export enum MediaStatus {
+  Pending = 1,
+  Processing = 2,
+  Ready = 3,
+  Failed = 4,
+  Deleted = 5,
+}
+
+export enum MediaKind {
+  Image = 1,
+  Video = 2,
+}
 
 export type CreateMediaUploadRequest = {
   fileName: string;
@@ -23,13 +35,16 @@ export type CreateMediaUploadResponse = {
 
 export type MediaResponse = {
   id: string;
-  fileName: string;
-  contentType: string;
-  sizeBytes: number;
-  purpose: MediaPurpose;
   url: string;
-  postId?: string | null;
-  commentId?: string | null;
-  profileId?: string | null;
+  thumbnailUrl?: string | null;
+  kind: "Image" | "Video";
+  purpose: string;
+  status: string;
+  contentType: string;
+  originalFileName: string;
+  sizeBytes: number;
+  width?: number | null;
+  height?: number | null;
+  durationSeconds?: number | null;
   createdAt: string;
 };

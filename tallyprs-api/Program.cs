@@ -72,6 +72,12 @@ builder.Services.Configure<MediaOptions>(
     builder.Configuration.GetSection("Media"));
 builder.Services.AddScoped<IMediaService, MediaService>();
 
+//Video Processing
+builder.Services.Configure<VideoProcessingOptions>(
+    builder.Configuration.GetSection("VideoProcessing"));
+
+builder.Services.AddScoped<IVideoProcessingService, VideoProcessingService>();
+
 // Storage services
 
 builder.Services.Configure<R2Options>(builder.Configuration.GetSection("R2"));

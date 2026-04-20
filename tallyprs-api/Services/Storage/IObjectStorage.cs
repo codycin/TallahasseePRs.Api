@@ -7,7 +7,7 @@ namespace TallahasseePRs.Api.Services.Storage
            Stream stream,
             string objectKey,
             string contentType,
-            IDictionary<string, string>? metedata = null,
+            IDictionary<string, string>? metadata = null,
             CancellationToken cancellationToken = default);
 
         Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default);
@@ -20,6 +20,13 @@ namespace TallahasseePRs.Api.Services.Storage
             string objectKey,
             string contentType,
             TimeSpan expiresIn,
+            CancellationToken cancellationToken = default);
+
+        Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default);
+        Task UploadViaPresignedUrlAsync(
+            Stream stream,
+            string objectKey,
+            string contentType,
             CancellationToken cancellationToken = default);
     }
     public class PutObjectResult
