@@ -2,6 +2,8 @@
 using Amazon.S3.Model;
 using Microsoft.Extensions.Options;
 using TallahasseePRs.Api.Data.Configurations;
+using System.Net.Http.Headers;
+
 
 namespace TallahasseePRs.Api.Services.Storage
 {
@@ -34,11 +36,11 @@ namespace TallahasseePRs.Api.Services.Storage
         }
 
         public async Task<PutObjectResult> UploadAsync(
-            Stream stream,
-            string objectKey,
-            string contentType,
-            IDictionary<string, string>? metadata = null,
-            CancellationToken cancellationToken = default)
+                Stream stream,
+                string objectKey,
+                string contentType,
+                IDictionary<string, string>? metadata = null,
+                CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -57,6 +59,11 @@ namespace TallahasseePRs.Api.Services.Storage
                 ContentType = contentType,
                 AutoCloseStream = true
             };
+
+            if (stream.CanSeek)
+            {
+                request.Headers.ContentLength = stream.Length - stream.Position;
+            }
 
             request.Headers.CacheControl = "public, max-age=31536000, immutable";
 
@@ -166,9 +173,62 @@ namespace TallahasseePRs.Api.Services.Storage
             });
         }
 
+        public async Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(objectKey))
+                throw new ArgumentException("Object key is required.", nameof(objectKey));
+
+            var response = await _s3.GetObjectAsync(_options.BucketName, NormalizeKey(objectKey), cancellationToken);
+            return response.ResponseStream;
+        }
+
         private static string NormalizeKey(string objectKey)
         {
             return objectKey.Trim().TrimStart('/');
         }
-    }
+
+
+        private readonly HttpClient _httpClient = new HttpClient();
+
+        public async Task UploadViaPresignedUrlAsync(
+            Stream stream,
+            string objectKey,
+            string contentType,
+            CancellationToken cancellationToken = default)
+        {
+            if (stream is null)
+                throw new ArgumentNullException(nameof(stream));
+
+            if (string.IsNullOrWhiteSpace(objectKey))
+                throw new ArgumentException("Object key is required.", nameof(objectKey));
+
+            if (string.IsNullOrWhiteSpace(contentType))
+                throw new ArgumentException("Content type is required.", nameof(contentType));
+
+            var presigned = await CreatePresignedUploadAsync(
+                objectKey,
+                contentType,
+                TimeSpan.FromMinutes(10),
+                cancellationToken);
+
+            using var request = new HttpRequestMessage(HttpMethod.Put, presigned.Url);
+
+            request.Content = new StreamContent(stream);
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+
+            if (stream.CanSeek)
+            {
+                request.Content.Headers.ContentLength = stream.Length - stream.Position;
+            }
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException(
+                    $"Presigned upload failed with status {(int)response.StatusCode}: {body}");
+            }
+        }
+}
 }

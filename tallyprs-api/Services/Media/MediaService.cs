@@ -30,17 +30,21 @@ namespace TallahasseePRs.Api.Services.Media
         private readonly IObjectStorage _storage;
         private readonly R2Options _r2Options;
         private readonly MediaOptions _mediaOptions;
+        private readonly IVideoProcessingService _videoProcessingService;
 
         public MediaService(
             AppDbContext db,
             IObjectStorage storage,
             IOptions<R2Options> r2Options,
-            IOptions<MediaOptions> mediaOptions)
+            IOptions<MediaOptions> mediaOptions,
+            IVideoProcessingService videoProcessingService)
         {
             _db = db;
             _storage = storage;
             _r2Options = r2Options.Value;
             _mediaOptions = mediaOptions.Value;
+            _videoProcessingService = videoProcessingService;
+
         }
 
         public async Task<CreateMediaUploadResponse> CreateUploadAsync(
@@ -113,32 +117,13 @@ namespace TallahasseePRs.Api.Services.Media
 
         public async Task<IReadOnlyList<MediaResponse>> GetForPostAsync(Guid postId, CancellationToken cancellationToken = default)
         {
-            return await _db.Media
+            var mediaItems = await _db.Media
                 .AsNoTracking()
-                .Where(m=>m.PostId == postId && m.Status == MediaStatus.Ready)
-                .OrderBy(m=>m.CreatedAt)
-                .Select(m=> new MediaResponse
-                {
-                    Id = m.Id,
-                    Url = _storage.GetPublicUrl(m.ObjectKey),
-                    ThumbnailUrl = m.ThumbnailObjectKey != null
-                        ? _storage.GetPublicUrl(m.ThumbnailObjectKey)
-                        : null,
-
-                    Kind = m.Kind.ToString(),
-                    Purpose = m.Purpose.ToString(),
-
-                    OriginalFileName = m.OriginalFileName,
-                    ContentType = m.ContentType,
-                    SizeBytes = m.SizeBytes,
-
-                    Width = m.Width,
-                    Height = m.Height,
-                    DurationSeconds = m.DurationSeconds,
-
-                    CreatedAt = m.CreatedAt
-                })
+                .Where(m => m.PostId == postId && m.Status == MediaStatus.Ready)
+                .OrderBy(m => m.CreatedAt)
                 .ToListAsync(cancellationToken);
+
+            return mediaItems.Select(m => ToResponse(m)).ToList();
         }
 
         public async Task<MediaResponse?> MarkUploadCompleteAsync(Guid mediaId, Guid userId, CancellationToken cancellationToken = default)
@@ -160,18 +145,41 @@ namespace TallahasseePRs.Api.Services.Media
                 throw new InvalidOperationException("Media upload is not pending.");
 
             var exists = await _storage.ExistsAsync(media.ObjectKey, cancellationToken);
-            Console.WriteLine($"Storage exists check: {exists}");
 
             if (!exists)
                 throw new InvalidOperationException("Uploaded file was not found in storage");
 
-            media.Status = MediaStatus.Ready;
             media.UploadedAt = DateTime.UtcNow;
+            media.UpdatedAt = DateTime.UtcNow;
 
-            await _db.SaveChangesAsync(cancellationToken);
+            if (media.Kind == MediaKind.Image)
+            {
+                media.Status = MediaStatus.Ready;
+                await _db.SaveChangesAsync(cancellationToken);
+                return ToResponse(media);
+            }
 
-            return ToResponse(media);
+            if (media.Kind == MediaKind.Video)
+            {
+                media.Status = MediaStatus.Processing;
+                media.ProcessingStartedAt = DateTime.UtcNow;
+                media.UpdatedAt = DateTime.UtcNow;
+
+                await _db.SaveChangesAsync(cancellationToken);
+                
+                // Important: reload or process by id after save
+                await _videoProcessingService.ProcessAsync(media.Id, cancellationToken);
+
+                var updated = await _db.Media
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(m => m.Id == media.Id && m.OwnerId == userId, cancellationToken);
+
+                return updated is null ? null : ToResponse(updated);
+            }
+            throw new InvalidOperationException("Unsupported media kind.");
         }
+
+
         public async Task DeleteAsync(Guid mediaId, Guid userId, CancellationToken cancellationToken = default)
         {
             var media = await _db.Media
@@ -200,6 +208,14 @@ namespace TallahasseePRs.Api.Services.Media
                     await _storage.DeleteAsync(media.ThumbnailObjectKey, cancellationToken);
                 }
             }
+            if (!string.IsNullOrWhiteSpace(media.PlaybackObjectKey))
+            {
+                var playbackExists = await _storage.ExistsAsync(media.PlaybackObjectKey, cancellationToken);
+                if (playbackExists)
+                {
+                    await _storage.DeleteAsync(media.PlaybackObjectKey, cancellationToken);
+                }
+            }
 
             media.Status = MediaStatus.Deleted;
             media.DeletedAt = DateTime.UtcNow;
@@ -218,7 +234,32 @@ namespace TallahasseePRs.Api.Services.Media
             if (isStillUsed)
                 return;
 
-            await _storage.DeleteAsync(media.ObjectKey, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(media.ObjectKey))
+            {
+                var exists = await _storage.ExistsAsync(media.ObjectKey, cancellationToken);
+                if (exists)
+                {
+                    await _storage.DeleteAsync(media.ObjectKey, cancellationToken);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(media.ThumbnailObjectKey))
+            {
+                var thumbExists = await _storage.ExistsAsync(media.ThumbnailObjectKey, cancellationToken);
+                if (thumbExists)
+                {
+                    await _storage.DeleteAsync(media.ThumbnailObjectKey, cancellationToken);
+                }
+            }
+            if (!string.IsNullOrWhiteSpace(media.PlaybackObjectKey))
+            {
+                var playbackExists = await _storage.ExistsAsync(media.PlaybackObjectKey, cancellationToken);
+                if (playbackExists)
+                {
+                    await _storage.DeleteAsync(media.PlaybackObjectKey, cancellationToken);
+                }
+            }
+
             _db.Media.Remove(media);
             await _db.SaveChangesAsync(cancellationToken);
         }
@@ -402,6 +443,36 @@ namespace TallahasseePRs.Api.Services.Media
                 _ => throw new InvalidOperationException("Invalid media purpose.")
             };
         }
+        private static string BuildPlaybackObjectKey(Models.Media media)
+        {
+            return media.Purpose switch
+            {
+                MediaPurpose.Post => media.PostId.HasValue
+                    ? $"users/{media.OwnerId}/posts/{media.PostId.Value}/media/{media.Id}/playback.mp4"
+                    : $"users/{media.OwnerId}/posts/unattached/media/{media.Id}/playback.mp4",
+
+                MediaPurpose.Comment => media.CommentId.HasValue
+                    ? $"users/{media.OwnerId}/comments/{media.CommentId.Value}/media/{media.Id}/playback.mp4"
+                    : $"users/{media.OwnerId}/comments/unattached/media/{media.Id}/playback.mp4",
+
+                _ => throw new InvalidOperationException("Playback video is only supported for post/comment media.")
+            };
+        }
+        private static string BuildThumbnailObjectKey(Models.Media media)
+        {
+            return media.Purpose switch
+            {
+                MediaPurpose.Post => media.PostId.HasValue
+                    ? $"users/{media.OwnerId}/posts/{media.PostId.Value}/media/{media.Id}/thumbnail.jpg"
+                    : $"users/{media.OwnerId}/posts/unattached/media/{media.Id}/thumbnail.jpg",
+
+                MediaPurpose.Comment => media.CommentId.HasValue
+                    ? $"users/{media.OwnerId}/comments/{media.CommentId.Value}/media/{media.Id}/thumbnail.jpg"
+                    : $"users/{media.OwnerId}/comments/unattached/media/{media.Id}/thumbnail.jpg",
+
+                _ => throw new InvalidOperationException("Thumbnail is only supported for post/comment media.")
+            };
+        }
 
         private static string GetExtensionForContentType(string contentType, string fileName)
         {
@@ -419,16 +490,31 @@ namespace TallahasseePRs.Api.Services.Media
 
         private MediaResponse ToResponse(Models.Media media)
         {
+            string url = "";
+
+            if (media.Kind == MediaKind.Image)
+            {
+                url = _storage.GetPublicUrl(media.ObjectKey);
+            }
+            else if (media.Kind == MediaKind.Video)
+            {
+                if (media.Status == MediaStatus.Ready && !string.IsNullOrWhiteSpace(media.PlaybackObjectKey))
+                {
+                    url = _storage.GetPublicUrl(media.PlaybackObjectKey);
+                }
+            }
+
             return new MediaResponse
             {
                 Id = media.Id,
-                Url = _storage.GetPublicUrl(media.ObjectKey),
-                ThumbnailUrl = media.ThumbnailObjectKey != null
+                Url = url,
+                ThumbnailUrl = !string.IsNullOrWhiteSpace(media.ThumbnailObjectKey)
                     ? _storage.GetPublicUrl(media.ThumbnailObjectKey)
                     : null,
 
                 Kind = media.Kind.ToString(),
                 Purpose = media.Purpose.ToString(),
+                Status = media.Status.ToString(),
 
                 OriginalFileName = media.OriginalFileName,
                 ContentType = media.ContentType,

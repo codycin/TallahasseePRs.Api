@@ -9,7 +9,11 @@ namespace TallahasseePRs.Api.Models
     }
     public enum MediaStatus
     {
-        Pending = 1, Ready = 2, Failed = 3, Deleted = 4
+        Pending = 1,
+        Processing = 2,
+        Ready = 3,
+        Failed = 4,
+        Deleted = 5
     }
     public enum MediaPurpose
     {
@@ -38,10 +42,19 @@ namespace TallahasseePRs.Api.Models
         public MediaStatus Status { get; set; } = MediaStatus.Pending;
 
         //Storage Identity
-        public string StorageProvider { get; set; } = "cloudlfare-r2";
+        public string StorageProvider { get; set; } = "cloudfare-r2";
         public string Bucket {  get; set; } = string.Empty;
+
+
+
         public string ObjectKey { get; set; } = string.Empty;
-    
+        public string? PlaybackObjectKey { get; set; }
+        public string? ThumbnailObjectKey { get; set; }
+        public string? PlaybackContentType { get; set; }
+
+
+
+
         //Metadata
         public string OriginalFileName { get; set; } = string.Empty;
         public string ContentType {  get; set; } = string.Empty;
@@ -54,12 +67,17 @@ namespace TallahasseePRs.Api.Models
         public string? Sha256Hash { get; set; }
         public string? ETag { get; set; }
 
-        public string? ThumbnailObjectKey { get; set; }
         public string? BlurHash { get; set; }
 
         //UI
         public bool IsPublic { get; set; }
         public int SortOrder { get; set; }
+
+
+        public string? ProcessingError { get; set; }
+
+        public DateTime? ProcessingStartedAt { get; set; }
+        public DateTime? ProcessedAt { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UploadedAt {  get; set; }

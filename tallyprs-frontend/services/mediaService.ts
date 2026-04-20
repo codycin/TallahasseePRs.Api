@@ -82,13 +82,18 @@ export async function uploadSingleMedia(
     commentId: options?.commentId ?? null,
     profileId: options?.profileId ?? null,
   };
-  console.log("CreateMediaUpload request:", request);
 
   const init = await createMediaUpload(request);
-
   await uploadFileToPresignedUrl(init.uploadUrl, file);
 
-  return completeMediaUpload(init.mediaId);
+  const media = await completeMediaUpload(init.mediaId);
+
+  if (media.kind === "Video" && media.status === "Processing") {
+    //Video and processing
+    return await waitForVideoReady(media.id);
+  }
+
+  return media;
 }
 
 export async function uploadMultipleMedia(
@@ -126,4 +131,43 @@ async function safeReadError(response: Response): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+export async function waitForVideoReady(
+  mediaId: string,
+  timeoutMs = 30000,
+  intervalMs = 1500,
+): Promise<MediaResponse> {
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    const media = await getMediaById(mediaId);
+
+    if (media.status === "Ready") {
+      //Ready
+      return media;
+    }
+
+    if (media.status === "Failed") {
+      //Failed
+      throw new Error("Video processing failed.");
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error("Timed out waiting for video processing.");
+}
+
+export async function getMediaById(mediaId: string): Promise<MediaResponse> {
+  const response = await apiFetch(`/media/${mediaId}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const message = await safeReadError(response);
+    throw new Error(message || "Failed to fetch media.");
+  }
+
+  return response.json();
 }

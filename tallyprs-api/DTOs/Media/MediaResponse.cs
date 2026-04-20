@@ -8,6 +8,7 @@
 
         public string Kind { get; set; } = "";
         public string Purpose { get; set; } = "";
+        public string Status { get; set; } = "";    
         public string ContentType { get; set; } = "";
         public string OriginalFileName { get; set; } = "";
         public long SizeBytes { get; set; }
