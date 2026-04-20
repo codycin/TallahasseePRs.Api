@@ -22,6 +22,14 @@ namespace TallahasseePRs.Api.Services.PostServices
             if (!postExists)
                 throw new KeyNotFoundException("Post not found");
 
+            var existingVote = await _db.Votes
+                .FirstOrDefaultAsync(v => v.PRPostId == postId && v.UserId == userId);
+
+            if (existingVote is not null)
+            {
+                await DeleteAsync(userId, existingVote.PRPostId);
+            }
+
             var vote = new Vote
             {
                 UserId = userId,
@@ -50,13 +58,11 @@ namespace TallahasseePRs.Api.Services.PostServices
                 .ToListAsync();
         }
 
-        public async Task DeleteAsync(Guid requestingUserId, Guid voteId)
+        public async Task DeleteAsync(Guid requestingUserId, Guid postId)
         {
-            var vote = await _db.Votes.FirstOrDefaultAsync(c => c.Id == voteId);
-            if (vote is null) throw new KeyNotFoundException("Comment not found.");
+            var vote = await _db.Votes.FirstOrDefaultAsync(c => c.PRPostId == postId && c.UserId == requestingUserId);
+            if (vote is null) throw new KeyNotFoundException("Vote not found.");
 
-            if (vote.UserId != requestingUserId)
-                    throw new UnauthorizedAccessException("You can only delete your own comments.");
 
             _db.Votes.Remove(vote);
             await _db.SaveChangesAsync();

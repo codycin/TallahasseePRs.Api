@@ -29,7 +29,7 @@ namespace TallahasseePRs.Api.Controllers
             [FromBody] AddVoteRequest request)
         {
             var userId = _currentUser.GetUserId();
-            var created = await _votes.CreateVote(postId, userId, request.vote);
+            var created = await _votes.CreateVote(userId, postId, request.vote);
             return Ok(created);
         }
 
@@ -44,11 +44,11 @@ namespace TallahasseePRs.Api.Controllers
         }
 
        
-        [HttpDelete("votes/{commentId:guid}")]
-        public async Task<IActionResult> Delete([FromRoute] Guid voteId)
+        [HttpDelete("votes/{postId:guid}")]
+        public async Task<IActionResult> Delete([FromRoute] Guid postId)
         {
             var userId = _currentUser.GetUserId();
-            await _votes.DeleteAsync(userId,voteId);
+            await _votes.DeleteAsync(userId,postId);
             return NoContent();
         }
 

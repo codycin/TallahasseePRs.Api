@@ -4,6 +4,6 @@ namespace TallahasseePRs.Api.DTOs.Votes
 {
     public sealed record AddVoteRequest(
         VoteValue vote
-        );
+    );
     
 }

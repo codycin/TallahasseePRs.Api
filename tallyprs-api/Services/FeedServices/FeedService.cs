@@ -79,7 +79,7 @@ namespace TallahasseePRs.Api.Services.FeedServices
 
             //Current counts of votes
             var voteCounts = await _db.Votes.AsNoTracking()
-                .Where(v => postIds.Contains(v.PRPostId))
+                .Where(v => postIds.Contains(v.PRPostId) && v.Value == VoteValue.Up)
                 .GroupBy(v => v.PRPostId)
                 .Select(g => new { PostId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.PostId, x => x.Count);
