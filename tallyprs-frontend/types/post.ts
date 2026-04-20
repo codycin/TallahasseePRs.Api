@@ -35,3 +35,7 @@ export type CreatePostRequest = {
   weight?: number | null;
   unit?: string | null;
 };
+
+export type VoteRequest = {
+  VoteValue: number; // enum VoteValue -1 or 1
+};

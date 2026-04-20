@@ -42,3 +42,76 @@ export async function createPost(request: CreatePostRequest) {
 
   return response.json();
 }
+
+export async function deletePost(postId: string) {
+  const response = await apiFetch(`/posts/${postId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    console.error("Delete post failed:", text);
+    throw new Error(text || "Failed to delete post.");
+  }
+  return text;
+}
+
+export async function updatePost(postId: string, request: CreatePostRequest) {
+  const response = await apiFetch(`/posts/${postId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    console.error("Update post failed:", text);
+    throw new Error(text || "Failed to update post.");
+  }
+
+  return text;
+}
+
+export async function votePost(postId: string, voteValue: number) {
+  const response = await apiFetch(`/posts/${postId}/votes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ vote: voteValue }),
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    console.error("Vote post failed:", text);
+    throw new Error(text || "Failed to vote post.");
+  }
+
+  return text;
+}
+
+export async function removeVotePost(postId: string) {
+  const response = await apiFetch(`/votes/${postId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    console.error("Vote post failed:", text);
+    throw new Error(text || "Failed to remove vote from post.");
+  }
+
+  return text;
+}

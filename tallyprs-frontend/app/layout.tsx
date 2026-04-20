@@ -4,8 +4,7 @@ import { getAccessTokenFromStorage } from "@/lib/storage/authStorage";
 
 import AuthenticatedNavbar from "@/components/layout/AuthenticatedNavbar";
 import AuthenticatedFooter from "@/components/layout/AuthenticatedFooter";
-import { AuthProvider } from "@/lib/auth/authContext"; // Update this path
-
+import { AuthProvider } from "@/lib/auth/authContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,8 +27,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const token = getAccessTokenFromStorage();
-  const isAuthenticated = !!token;
   return (
     <html lang="en">
       <body
