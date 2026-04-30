@@ -21,6 +21,7 @@ export async function registerUser(
   const data = await response.json();
 
   setAccessTokenInStorage(data.accessToken);
+  localStorage.setItem("userId", data.userId);
 
   return data;
 }
@@ -42,6 +43,15 @@ export async function loginUser(request: LoginRequest): Promise<AuthResponse> {
   const data = await response.json();
 
   setAccessTokenInStorage(data.accessToken);
+
+  console.log("user id from response:", data.user.id);
+
+  localStorage.setItem("currentUserId", data.user.id);
+
+  localStorage.setItem("testKey", "hello");
+  console.log(localStorage.getItem("testKey"));
+
+  console.log("user id from localStorage:", localStorage.getItem("userId"));
 
   return data;
 }

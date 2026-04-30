@@ -22,6 +22,10 @@ namespace TallahasseePRs.Api.Services.PostServices
             {
                 throw new KeyNotFoundException("Post not found");
             }
+            var user = await _db.Profiles.FirstAsync(u => u.UserId == userId);
+            var userName = user.DisplayName;
+            if (userName.IsWhiteSpace())
+                userName = "user-" + userId.ToString();
 
             var comment = new Comment
             {
@@ -30,6 +34,7 @@ namespace TallahasseePRs.Api.Services.PostServices
                 PRPostId = postId,
                 body = body.Trim(),
                 ParentCommentId = null,
+                UserName = userName,
             };
 
             _db.Comments.Add(comment);
@@ -48,8 +53,12 @@ namespace TallahasseePRs.Api.Services.PostServices
             {
                 throw new KeyNotFoundException("Parent comment not found.");
             }
-                var parentExists = await _db.Comments.AnyAsync(c => c.Id == parentCommentId);
+            var parentExists = await _db.Comments.AnyAsync(c => c.Id == parentCommentId);
 
+            var user = await _db.Profiles.FirstAsync(u => u.UserId == userId);
+            var userName = user.DisplayName;
+            if (userName.IsWhiteSpace())
+                userName = "user-"+ userId.ToString();
             if (parent.PRPostId != postId)
                 throw new InvalidOperationException("Parent comment does not belong to this post.");
 
@@ -60,6 +69,7 @@ namespace TallahasseePRs.Api.Services.PostServices
                 PRPostId = parent.PRPostId,
                 body = body.Trim(),
                 ParentCommentId = parentCommentId,
+                UserName = userName,
             };
 
             _db.Comments.Add(comment);
@@ -76,6 +86,7 @@ namespace TallahasseePRs.Api.Services.PostServices
                     Id: c.Id,
                     PostId: c.PRPostId,
                     UserId: c.UserId,
+                    UserName: c.UserName,
                     Body: c.body,
                     CreatedAt: c.CreatedAt,
                     ParentCommentId: c.ParentCommentId,
@@ -130,6 +141,7 @@ namespace TallahasseePRs.Api.Services.PostServices
             Id: c.Id,
             PostId: c.PRPostId,
             UserId: c.UserId,
+            UserName: c.UserName,
             Body: c.body,
             CreatedAt: c.CreatedAt,
             ParentCommentId: c.ParentCommentId,
