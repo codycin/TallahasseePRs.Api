@@ -75,10 +75,10 @@ public class AppDbContext : DbContext
 
         // SELF REFERENCING REPLIES
         modelBuilder.Entity<Comment>()
-            .HasOne(c => c.ParentComment)
-            .WithMany(c => c.Replies)
+            .HasMany(c => c.Replies)
+            .WithOne(c => c.ParentComment)
             .HasForeignKey(c => c.ParentCommentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         // VOTES
         modelBuilder.Entity<Vote>()

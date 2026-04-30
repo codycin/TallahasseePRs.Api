@@ -4,6 +4,7 @@
     Guid Id,
     Guid PostId,
     Guid UserId,
+    string UserName,
     string Body,
     DateTime CreatedAt,
     Guid? ParentCommentId,

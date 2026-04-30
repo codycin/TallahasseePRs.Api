@@ -1,6 +1,14 @@
 "use client";
 
+import { CommentResponse } from "@/types/comment";
+import CommentItem from "./Comment";
 import { removeVotePost, votePost } from "@/services/Post/posts";
+import {
+  createComment,
+  createCommentReply,
+  getCommentsForPost,
+  deleteComment,
+} from "@/services/Comment/commentService";
 import { PostResponse } from "@/types/post";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -21,6 +29,8 @@ export default function PostCard({ post }: PostCardProps) {
     }));
   }
 
+  const currentUserId = localStorage.getItem("currentUserId");
+
   const created = new Date(post.createdAt).toLocaleString();
 
   const [voteBusy, setVoteBusy] = useState(false);
@@ -30,10 +40,19 @@ export default function PostCard({ post }: PostCardProps) {
   );
 
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.commentCount);
+  const [commentFormOpen, setCommentFormOpen] = useState(false);
+  const [newCommentBody, setNewCommentBody] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+
+  const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(
+    null,
+  );
+  const [replyBody, setReplyBody] = useState("");
+
   const [commentLoadState, setCommentLoadState] =
     useState<CommentLoadState>("idle");
-  const [comments, setComments] = useState<any[]>([]);
-
+  const [comments, setComments] = useState<CommentResponse[]>([]);
   useEffect(() => {
     setVoteValue(post.myVoteValue ?? null);
   }, [post.myVoteValue]);
@@ -46,19 +65,109 @@ export default function PostCard({ post }: PostCardProps) {
       setCommentLoadState("loading");
 
       try {
-        // NEXT TODO:
-        // const data = await getCommentsByPostId(post.id);
-        // setComments(data);
+        const data = await getCommentsForPost(post.id);
 
-        // temporary placeholder
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        setComments([]);
+        setComments(data);
         setCommentLoadState("loaded");
       } catch (error) {
         console.error("Failed to load comments", error);
         setCommentLoadState("error");
       }
     }
+  }
+  async function submitComment() {
+    const body = newCommentBody.trim();
+
+    if (!body || commentSubmitting) return;
+
+    setCommentSubmitting(true);
+
+    try {
+      const created = await createComment(
+        {
+          body,
+        },
+        post.id,
+      );
+
+      // add new comment to UI immediately
+      setComments((prev) => [created, ...prev]);
+
+      setNewCommentBody("");
+      setCommentFormOpen(false);
+      setCommentLoadState("loaded");
+      setCommentCount(commentCount + 1);
+    } catch (error) {
+      console.error("Failed to create comment", error);
+    } finally {
+      setCommentSubmitting(false);
+    }
+  }
+  async function submitCommentReply(commentId: string) {
+    const body = replyBody.trim();
+
+    if (!body || commentSubmitting) return;
+
+    setCommentSubmitting(true);
+
+    try {
+      const created = await createCommentReply({ body }, post.id, commentId);
+
+      setComments((prev) => addReplyToCommentTree(prev, commentId, created));
+
+      setReplyBody("");
+      setReplyingToCommentId(null);
+      setCommentLoadState("loaded");
+      setCommentCount((prev) => prev + 1);
+    } catch (error) {
+      console.error("Failed to create reply", error);
+    } finally {
+      setCommentSubmitting(false);
+    }
+  }
+  function addReplyToCommentTree(
+    comments: CommentResponse[],
+    parentCommentId: string,
+    reply: CommentResponse,
+  ): CommentResponse[] {
+    return comments.map((comment) => {
+      if (comment.id === parentCommentId) {
+        return {
+          ...comment,
+          replies: [...(comment.replies ?? []), reply],
+        };
+      }
+
+      return {
+        ...comment,
+        replies: addReplyToCommentTree(
+          comment.replies ?? [],
+          parentCommentId,
+          reply,
+        ),
+      };
+    });
+  }
+  async function handleDeleteComment(commentId: string) {
+    try {
+      await deleteComment(commentId);
+
+      setComments((prev) => removeCommentFromTree(prev, commentId));
+      setCommentCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Failed to delete comment", error);
+    }
+  }
+  function removeCommentFromTree(
+    comments: CommentResponse[],
+    commentId: string,
+  ): CommentResponse[] {
+    return comments
+      .filter((comment) => comment.id !== commentId)
+      .map((comment) => ({
+        ...comment,
+        replies: removeCommentFromTree(comment.replies ?? [], commentId),
+      }));
   }
 
   return (
@@ -243,7 +352,7 @@ export default function PostCard({ post }: PostCardProps) {
           onClick={toggleComments}
           className="text-gray-500 hover:cursor-pointer"
         >
-          💬 {post.commentCount}
+          💬 {commentCount}
         </button>
       </div>
 
@@ -254,12 +363,46 @@ export default function PostCard({ post }: PostCardProps) {
             <h3 className="text-sm font-semibold text-gray-800">Comments</h3>
             <button
               type="button"
-              className="text-xs text-blue-600 hover:underline"
+              onClick={() => setCommentFormOpen((prev) => !prev)}
+              className="text-xs text-gray-800 hover:underline cursor-pointer"
             >
               Add comment
             </button>
           </div>
+          {commentFormOpen && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+              <textarea
+                value={newCommentBody}
+                onChange={(e) => setNewCommentBody(e.target.value)}
+                placeholder="Write a comment..."
+                className="w-full min-h-20 rounded-md border border-gray-300 bg-white p-2 text-sm text-gray-900 outline-none"
+              />
 
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCommentFormOpen(false);
+                    setNewCommentBody("");
+                  }}
+                  className="px-3 py-1 text-sm text-gray-600"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={submitComment}
+                  disabled={
+                    commentSubmitting || newCommentBody.trim().length === 0
+                  }
+                  className="bg-blue-600 text-white px-3 py-1 text-sm rounded disabled:opacity-50"
+                >
+                  {commentSubmitting ? "Posting..." : "Post"}
+                </button>
+              </div>
+            </div>
+          )}
           {commentLoadState === "loading" && (
             <div className="space-y-2">
               <div className="animate-pulse rounded-lg bg-gray-100 p-3">
@@ -285,16 +428,87 @@ export default function PostCard({ post }: PostCardProps) {
 
           {commentLoadState === "loaded" && comments.length > 0 && (
             <div className="space-y-3">
-              {comments.map((comment) => (
+              {/*comments.map((comment) => (
                 <div
                   key={comment.id}
                   className="rounded-lg bg-gray-50 p-3 border border-gray-200"
                 >
                   <div className="text-xs text-gray-500 mb-1">
-                    {comment.userName}
+                    {comment.userId}
                   </div>
-                  <p className="text-sm text-gray-700">{comment.content}</p>
+                  <p className="text-sm text-gray-700">{comment.body}</p>
+                  <button
+                    className="text-xs text-gray-400"
+                    onClick={() => setReplyingToCommentId(comment.id)}
+                  >
+                    reply
+                  </button>
+                  {replyingToCommentId === comment.id && (
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                      <textarea
+                        value={replyBody}
+                        onChange={(e) => setReplyBody(e.target.value)}
+                        placeholder="Write a comment..."
+                        className="w-full min-h-20 rounded-md border border-gray-300 bg-white p-2 text-sm text-gray-900 outline-none"
+                      />
+
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyingToCommentId(null);
+                            setReplyBody("");
+                          }}
+                          className="px-3 py-1 text-sm text-gray-600"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            submitCommentReply(comment.id);
+                          }}
+                          disabled={
+                            commentSubmitting || replyBody.trim().length === 0
+                          }
+                          className="bg-blue-600 text-white px-3 py-1 text-sm rounded disabled:opacity-50"
+                        >
+                          {commentSubmitting ? "Posting..." : "Post"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {comment.replies?.length > 0 && (
+                    <div className="mt-3 ml-4 space-y-2 border-l border-gray-200 pl-3">
+                      {comment.replies.map((reply) => (
+                        <div
+                          key={reply.id}
+                          className="rounded-lg bg-white p-2 border border-gray-200"
+                        >
+                          <div className="text-xs text-gray-500 mb-1">
+                            {reply.userId}
+                          </div>
+                          <p className="text-sm text-gray-700">{reply.body}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              ))*/}
+              {comments.map((comment) => (
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  currentUserId={currentUserId}
+                  replyingToCommentId={replyingToCommentId}
+                  setReplyingToCommentId={setReplyingToCommentId}
+                  replyBody={replyBody}
+                  setReplyBody={setReplyBody}
+                  submitCommentReply={submitCommentReply}
+                  commentSubmitting={commentSubmitting}
+                  onDeleteComment={handleDeleteComment}
+                />
               ))}
             </div>
           )}
