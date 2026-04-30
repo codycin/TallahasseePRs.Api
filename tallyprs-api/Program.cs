@@ -20,6 +20,8 @@ using TallahasseePRs.Api.Services.Notifications;
 using TallahasseePRs.Api.Services.PostServices;
 using TallahasseePRs.Api.Services.ProfileServices;
 using TallahasseePRs.Api.Services.Storage;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using static TallahasseePRs.Api.Services.CurrentUserService;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -132,9 +134,60 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+//Rate limiting 
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("auth", limiter =>
+    {
+        limiter.PermitLimit = 5;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiter.QueueLimit = 0;
+    });
+
+    options.AddFixedWindowLimiter("writes", limiter =>
+    {
+        limiter.PermitLimit = 20;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiter.QueueLimit = 0;
+    });
+
+    options.AddFixedWindowLimiter("reads", limiter =>
+    {
+        limiter.PermitLimit = 120;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiter.QueueLimit = 0;
+    });
+});
+
+
+//Logging
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.SetMinimumLevel(LogLevel.Information);
+}
+else
+{
+    builder.Logging.SetMinimumLevel(LogLevel.Warning);
+}
+
+
+
+
+
 var app = builder.Build();
 
 app.UseCors("Frontend");
+app.UseRateLimiter();
 
 
 using (var scope = app.Services.CreateScope())

@@ -31,19 +31,22 @@ namespace TallahasseePRs.Api.Services.Media
         private readonly R2Options _r2Options;
         private readonly MediaOptions _mediaOptions;
         private readonly IVideoProcessingService _videoProcessingService;
+        private readonly ILogger<MediaService> _logger;
 
         public MediaService(
             AppDbContext db,
             IObjectStorage storage,
             IOptions<R2Options> r2Options,
             IOptions<MediaOptions> mediaOptions,
-            IVideoProcessingService videoProcessingService)
+            IVideoProcessingService videoProcessingService,
+            ILogger<MediaService> logger)
         {
             _db = db;
             _storage = storage;
             _r2Options = r2Options.Value;
             _mediaOptions = mediaOptions.Value;
             _videoProcessingService = videoProcessingService;
+            _logger = logger;
 
         }
 
@@ -97,6 +100,15 @@ namespace TallahasseePRs.Api.Services.Media
                 TimeSpan.FromMinutes(10),
                 cancellationToken);
 
+            _logger.LogInformation(
+                "Media upload initialized. MediaId={MediaId} UserId={UserId} Kind={Kind} Purpose={Purpose} SizeBytes={SizeBytes} ContentType={ContentType}",
+                media.Id,
+                userId,
+                media.Kind,
+                media.Purpose,
+                media.SizeBytes,
+                media.ContentType);
+
             return new CreateMediaUploadResponse
             {
                 MediaId = media.Id,
@@ -128,23 +140,34 @@ namespace TallahasseePRs.Api.Services.Media
 
         public async Task<MediaResponse?> MarkUploadCompleteAsync(Guid mediaId, Guid userId, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine($"MarkUploadCompleteAsync called with mediaId={mediaId}, userId={userId}");
+            _logger.LogInformation(
+                "Media upload complete requested. MediaId={MediaId} UserId={UserId}",
+                mediaId,
+                userId);
 
             var media = await _db.Media
                 .FirstOrDefaultAsync(m => m.Id == mediaId && m.OwnerId == userId, cancellationToken);
 
             if (media is null)
             {
-                Console.WriteLine("Media not found for this user.");
+                _logger.LogWarning(
+                    "Media upload complete failed because media was not found. MediaId={MediaId} UserId={UserId}",
+                    mediaId,
+                    userId);
                 return null;
             }
 
-            Console.WriteLine($"Found media row. ObjectKey={media.ObjectKey}, Status={media.Status}");
 
             if (media.Status != MediaStatus.Pending)
                 throw new InvalidOperationException("Media upload is not pending.");
 
             var exists = await _storage.ExistsAsync(media.ObjectKey, cancellationToken);
+
+            _logger.LogInformation(
+                "Media storage existence check completed. MediaId={MediaId} ObjectKey={ObjectKey} Exists={Exists}",
+                media.Id,
+                media.ObjectKey,
+                exists);
 
             if (!exists)
                 throw new InvalidOperationException("Uploaded file was not found in storage");
@@ -156,6 +179,11 @@ namespace TallahasseePRs.Api.Services.Media
             {
                 media.Status = MediaStatus.Ready;
                 await _db.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Media upload marked complete. MediaId={MediaId} Kind={Kind} Status={Status}",
+                    media.Id,
+                    media.Kind,
+                    media.Status);
                 return ToResponse(media);
             }
 
@@ -174,6 +202,15 @@ namespace TallahasseePRs.Api.Services.Media
                     .AsNoTracking()
                     .FirstOrDefaultAsync(m => m.Id == media.Id && m.OwnerId == userId, cancellationToken);
 
+                if (updated != null)
+                {
+                    _logger.LogInformation(
+                        "Media upload marked complete. MediaId={MediaId} Kind={Kind} Status={Status}",
+                        media.Id,
+                        media.Kind,
+                        media.Status);
+                }
+
                 return updated is null ? null : ToResponse(updated);
             }
             throw new InvalidOperationException("Unsupported media kind.");
@@ -186,7 +223,14 @@ namespace TallahasseePRs.Api.Services.Media
                 .FirstOrDefaultAsync(m => m.Id == mediaId && m.OwnerId == userId, cancellationToken);
 
             if (media is null)
+            {
+                _logger.LogWarning(
+                    "Media delete failed because media was not found. MediaId={MediaId} UserId={UserId}",
+                    mediaId,
+                    userId);
                 throw new InvalidOperationException("Media not found.");
+
+            }
 
             if (media.Status == MediaStatus.Deleted)
                 return;
@@ -220,6 +264,11 @@ namespace TallahasseePRs.Api.Services.Media
             media.Status = MediaStatus.Deleted;
             media.DeletedAt = DateTime.UtcNow;
             media.UpdatedAt = DateTime.UtcNow;
+
+            _logger.LogInformation(
+                "Media deleted. MediaId={MediaId} UserId={UserId}",
+                media.Id,
+                userId);
 
             await _db.SaveChangesAsync(cancellationToken);
         }

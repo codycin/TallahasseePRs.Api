@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TallahasseePRs.Api.DTOs.Profiles;
 using TallahasseePRs.Api.Services;
 using TallahasseePRs.Api.Services.PostServices;
@@ -28,6 +29,8 @@ namespace TallahasseePRs.Api.Controllers
         }
 
         [HttpPut]
+        [EnableRateLimiting("writes")]
+
         public async Task<IActionResult> Update([FromBody] UpdateProfileRequest request)
         {
             var userId = _currentUser.GetUserId();

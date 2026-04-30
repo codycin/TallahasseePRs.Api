@@ -16,15 +16,18 @@ namespace TallahasseePRs.Api.Services.Media
         private readonly AppDbContext _db;
         private readonly IObjectStorage _storage;
         private readonly VideoProcessingOptions _options;
+        private readonly ILogger<VideoProcessingService> _logger;
 
         public VideoProcessingService(
             AppDbContext db,
             IObjectStorage storage,
-            IOptions<VideoProcessingOptions> options)
+            IOptions<VideoProcessingOptions> options,
+            ILogger<VideoProcessingService> logger)
         {
             _db = db;
             _storage = storage;
             _options = options.Value;
+            _logger = logger;
         }
 
         public async Task ProcessAsync(Guid mediaId, CancellationToken cancellationToken = default)
@@ -63,9 +66,15 @@ namespace TallahasseePRs.Api.Services.Media
                     await inputStream.CopyToAsync(fileStream, cancellationToken);
                 }
 
-                Console.WriteLine("Starting playback transcode...");
+                var startedAt = DateTime.UtcNow;
+
+                _logger.LogInformation(
+                    "Video processing started. MediaId={MediaId}",
+                    mediaId);
                 await RunFfmpegForPlaybackAsync(inputPath, outputPath, cancellationToken);
-                Console.WriteLine("Playback transcode finished.");
+                _logger.LogInformation(
+                    "Video playback file created. MediaId={MediaId}",
+                    media.Id);
 
                 Console.WriteLine("Starting thumbnail generation...");
                 await RunFfmpegForThumbnailAsync(inputPath, thumbnailPath, cancellationToken);
@@ -108,6 +117,13 @@ namespace TallahasseePRs.Api.Services.Media
                 media.ProcessingError = null;
 
                 await _db.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Video processing completed. MediaId={MediaId} DurationMs={DurationMs} Width={Width} Height={Height} DurationSeconds={DurationSeconds}",
+                    media.Id,
+                    (DateTime.UtcNow - startedAt).TotalMilliseconds,
+                    media.Width,
+                    media.Height,
+                    media.DurationSeconds);
             }
             catch (Exception ex)
             {
@@ -115,6 +131,10 @@ namespace TallahasseePRs.Api.Services.Media
                 media.ProcessingError = ex.Message;
                 media.UpdatedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync(cancellationToken);
+                _logger.LogError(
+                    ex,
+                    "Video processing failed. MediaId={MediaId}",
+                    mediaId);
                 throw;
             }
             finally

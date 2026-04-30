@@ -23,6 +23,7 @@ export default function PostCard({ post }: PostCardProps) {
 
   const created = new Date(post.createdAt).toLocaleString();
 
+  const [voteBusy, setVoteBusy] = useState(false);
   const [voteCount, setVoteCount] = useState(post.voteCount);
   const [voteValue, setVoteValue] = useState<number | null>(
     post.myVoteValue ?? null,
@@ -177,22 +178,35 @@ export default function PostCard({ post }: PostCardProps) {
           } hover:cursor-pointer`}
           onClick={() => {
             if (voteValue === -1 || voteValue === 0 || voteValue === null) {
-              votePost(post.id, 1);
-              setVoteValue(1);
-              setVoteCount(voteCount + 1);
-              console.log("UP from DOWN/NULL clicked", {
-                voteValue,
-                myVoteValue: post.myVoteValue,
-              });
+              if (voteBusy) return;
+              setVoteBusy(true);
+              try {
+                votePost(post.id, 1);
+                setVoteValue(1);
+                setVoteCount(voteCount + 1);
+                console.log("UP from DOWN/NULL clicked", {
+                  voteValue,
+                  myVoteValue: post.myVoteValue,
+                });
+              } finally {
+                setVoteBusy(false);
+              }
             }
             if (voteValue === 1) {
-              removeVotePost(post.id);
-              setVoteValue(null);
-              setVoteCount(voteCount - 1);
-              console.log("UP FROM UP clicked", {
-                voteValue,
-                myVoteValue: post.myVoteValue,
-              });
+              if (voteBusy) return;
+              setVoteBusy(true);
+
+              try {
+                removeVotePost(post.id);
+                setVoteValue(null);
+                setVoteCount(voteCount - 1);
+                console.log("UP FROM UP clicked", {
+                  voteValue,
+                  myVoteValue: post.myVoteValue,
+                });
+              } finally {
+                setVoteBusy(false);
+              }
             }
           }}
         >

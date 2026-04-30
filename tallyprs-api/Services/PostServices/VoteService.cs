@@ -61,7 +61,7 @@ namespace TallahasseePRs.Api.Services.PostServices
         public async Task DeleteAsync(Guid requestingUserId, Guid postId)
         {
             var vote = await _db.Votes.FirstOrDefaultAsync(c => c.PRPostId == postId && c.UserId == requestingUserId);
-            if (vote is null) throw new KeyNotFoundException("Vote not found.");
+            if (vote is null) return;
 
 
             _db.Votes.Remove(vote);

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TallahasseePRs.Api.Common.Paging;
 using TallahasseePRs.Api.DTOs.Feed;
 using TallahasseePRs.Api.DTOs.Posts;
@@ -25,6 +26,7 @@ namespace TallahasseePRs.Api.Controllers
         }
 
         [HttpGet]
+        [EnableRateLimiting("reads")]
         public async Task<ActionResult<FeedPage<PostResponse>>> Get(
             [FromQuery] FeedType type = FeedType.Global,
             [FromQuery] int limit = 20,
