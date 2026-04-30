@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.DTOs.Media;
@@ -26,6 +27,8 @@ namespace TallahasseePRs.Api.Controllers
         }
 
         [HttpPost("uploads")]
+        [EnableRateLimiting("writes")]
+
         public async Task<ActionResult<CreateMediaUploadResponse>> CreateUpload(
             [FromBody] CreateMediaUploadRequest request,
             CancellationToken cancellationToken)
@@ -37,6 +40,8 @@ namespace TallahasseePRs.Api.Controllers
         }
 
         [HttpPost("{id:guid}/complete")]
+        [EnableRateLimiting("writes")]
+
         public async Task<ActionResult<MediaResponse>> CompleteUpload(Guid id, CancellationToken cancellationToken)
         {
             var userId = _currentUserService.GetUserId();

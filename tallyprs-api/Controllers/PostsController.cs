@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TallahasseePRs.Api.DTOs.Judging;
 using TallahasseePRs.Api.DTOs.Posts;
 using TallahasseePRs.Api.Services;
@@ -32,7 +33,8 @@ public sealed class PostsController : ControllerBase
     //Creates post
     [Authorize]
     [HttpPost]
-    
+    [EnableRateLimiting("writes")]
+
     public async Task<IActionResult> Create([FromBody] CreatePostRequest request) //Creat from JSON body, with a request
     {
         var userId = _currentUser.GetUserId();        //Create post through post service
@@ -45,6 +47,8 @@ public sealed class PostsController : ControllerBase
     //Update post
     [Authorize]
     [HttpPut("{id:guid}")]
+    [EnableRateLimiting("writes")]
+
 
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePostRequest request) //From JSON body conver to request
     {

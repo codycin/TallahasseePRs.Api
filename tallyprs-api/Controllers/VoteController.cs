@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TallahasseePRs.Api.DTOs.Comments;
 using TallahasseePRs.Api.DTOs.Posts;
 using TallahasseePRs.Api.DTOs.Votes;
@@ -24,6 +25,7 @@ namespace TallahasseePRs.Api.Controllers
 
         //POST
         [HttpPost("posts/{postId:guid}/votes")]
+        [EnableRateLimiting("writes")]
         public async Task<ActionResult<VoteResponse>> AddVote(
             [FromRoute] Guid postId,
             [FromBody] AddVoteRequest request)
