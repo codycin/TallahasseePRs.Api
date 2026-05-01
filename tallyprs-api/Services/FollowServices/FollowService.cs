@@ -105,7 +105,7 @@ namespace TallahasseePRs.Api.Services.FollowServices
 
         };
 
-        public async Task<int> GetFollowersCountAsync(Guid userId)
+        public async Task<int> GetFollowersCountAsync(Guid? userId)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -117,7 +117,7 @@ namespace TallahasseePRs.Api.Services.FollowServices
             return count;
 
         }
-        public async Task<int> GetFollowingCountAsync(Guid userId)
+        public async Task<int> GetFollowingCountAsync(Guid? userId)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -129,7 +129,7 @@ namespace TallahasseePRs.Api.Services.FollowServices
             return count;
         }
 
-        public async Task<List<FollowResponse>> GetFollowersByUserAsync(Guid userId)
+        public async Task<List<FollowResponse>> GetFollowersByUserAsync(Guid? userId)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -148,7 +148,7 @@ namespace TallahasseePRs.Api.Services.FollowServices
                 }).ToListAsync();
 
         }
-        public async Task<List<FollowResponse>> GetFollowingByUserAsync(Guid userId)
+        public async Task<List<FollowResponse>> GetFollowingByUserAsync(Guid? userId)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
 

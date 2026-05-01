@@ -2,13 +2,19 @@
 
 import Feed from "@/components/Feed";
 import PostCard from "@/components/PostCard";
-import { getPostFeed } from "@/services/Feed/feedService";
+import { getUserPostFeed } from "@/services/Feed/feedService";
 import type { PostResponse } from "@/types/post";
 
-export default function HomeFeedClient() {
+type UserPostsFeedClientProps = {
+  userId: string;
+};
+
+export default function UserPostsFeedClient({
+  userId,
+}: UserPostsFeedClientProps) {
   return (
     <Feed<PostResponse>
-      fetchPage={(cursor) => getPostFeed("Global", 20, cursor)}
+      fetchPage={(cursor) => getUserPostFeed(userId, 20, cursor)}
       getKey={(post) => post.id}
       renderItem={(post, { removeItem }) => (
         <PostCard post={post} onDeleted={removeItem} />

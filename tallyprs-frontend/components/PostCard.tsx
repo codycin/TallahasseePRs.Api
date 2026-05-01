@@ -12,12 +12,16 @@ import {
 import { PostResponse } from "@/types/post";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { deletePost } from "@/services/Post/posts";
 
-type PostCardProps = { post: PostResponse };
+type PostCardProps = {
+  post: PostResponse;
+  onDeleted?: (postId: string) => void;
+};
 
 type CommentLoadState = "idle" | "loading" | "loaded" | "error";
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({ post, onDeleted }: PostCardProps) {
   const [playingVideos, setPlayingVideos] = useState<Record<string, boolean>>(
     {},
   );
@@ -30,6 +34,8 @@ export default function PostCard({ post }: PostCardProps) {
   }
 
   const currentUserId = localStorage.getItem("currentUserId");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const created = new Date(post.createdAt).toLocaleString();
 
@@ -170,16 +176,63 @@ export default function PostCard({ post }: PostCardProps) {
       }));
   }
 
+  async function handleDeletePost() {
+    const confirmed = window.confirm("Delete this post?");
+    if (!confirmed || isDeleting) return;
+
+    try {
+      setIsDeleting(true);
+      setDeleteError("");
+
+      await deletePost(post.id);
+
+      onDeleted?.(post.id);
+    } catch (error) {
+      console.error("delete post error:", error);
+      setDeleteError(
+        error instanceof Error ? error.message : "Failed to delete post.",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+  const createdDate = new Date(post.createdAt).toLocaleDateString("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "2-digit",
+  });
+
   return (
     <article className="w-full max-w-2xl mx-auto bg-white md:rounded-2xl md:shadow p-4 space-y-3">
       {/* header */}
+
       <div className="flex justify-between items-center text-sm text-gray-500">
-        <div>
-          <span className="font-medium text-gray-800">{post.userName}</span>{" "}
-          <Link href={`/profile/${post.userId}`}>View profile</Link>
+        <div className="">
+          <span className="font-medium text-gray-800">{post.userName}</span>
         </div>
-        <span>{created}</span>
+        <div className="space-x-5">
+          <span>{createdDate}</span>
+
+          {currentUserId === post.userId && (
+            <button
+              type="button"
+              className="rounded-full px-2 py-1 text-xs font-medium bg-red-500/10 text-red-400"
+              onClick={handleDeletePost}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
+          )}
+        </div>
       </div>
+      {currentUserId !== post.userId && (
+        <Link
+          href={`/profile/${post.userId}`}
+          className="text-sm  text-gray-500"
+        >
+          View profile
+        </Link>
+      )}
 
       {/* Title + Lift */}
       <div>

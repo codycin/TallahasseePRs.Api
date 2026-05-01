@@ -4,7 +4,12 @@ import { useState, useEffect } from "react";
 
 type FeedProps<T> = {
   fetchPage: (cursor?: string) => Promise<FeedPage<T>>;
-  renderItem: (item: T) => React.ReactNode;
+  renderItem: (
+    item: T,
+    helpers: {
+      removeItem: (key: string) => void;
+    },
+  ) => React.ReactNode;
   getKey: (item: T) => string;
 };
 
@@ -19,6 +24,10 @@ export default function Feed<T>({
   const [error, setError] = useState<string | null>(null);
 
   const hasMore = nextCursor !== null;
+
+  function removeItem(key: string) {
+    setItems((prev) => prev.filter((item) => getKey(item) !== key));
+  }
 
   useEffect(() => {
     async function loadInitial() {
@@ -73,9 +82,11 @@ export default function Feed<T>({
 
   return (
     <div>
-      {items.map((item) => (
-        <div key={getKey(item)}>{renderItem(item)}</div>
-      ))}
+      {items.map((item) => {
+        const key = getKey(item);
+
+        return <div key={key}>{renderItem(item, { removeItem })}</div>;
+      })}
       {loading && <p>Loading...</p>}
       {hasMore && !loading && <button onClick={loadMore}>Load More</button>}
       {error && <p>{error}</p>}

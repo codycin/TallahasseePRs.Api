@@ -10,5 +10,8 @@ namespace TallahasseePRs.Api.DTOs.Feed
 
         public DateTime? CursorCreatedAt { get; init; } 
         public Guid? CursorId { get; init; }
+
+        public Guid? TargetUserId { get; init; }
+
     }
 }

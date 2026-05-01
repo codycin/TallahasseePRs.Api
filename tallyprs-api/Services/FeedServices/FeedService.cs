@@ -24,31 +24,43 @@ namespace TallahasseePRs.Api.Services.FeedServices
             _storage = storage;
         }
 
-        public async Task<FeedPage<PostResponse>> GetFeedAsync(FeedQuery query, Guid requestingUser)
+        public async Task<FeedPage<PostResponse>> GetFeedAsync(
+     FeedQuery query,
+     Guid? requestingUser)
         {
-            var limit = Math.Clamp(query.Limit, 1,50);
+            var limit = Math.Clamp(query.Limit, 1, 50);
 
             IQueryable<PRPost> q = _db.Posts
                 .AsNoTracking()
                 .Include(p => p.User)
                 .Include(p => p.MediaItems);
 
-
-            //Feed type filter
+            // Feed type filter
             q = query.Type switch
             {
                 FeedType.Global => q,
+
                 FeedType.Following => q.Where(p =>
                     _db.Follows
-                    .Where(f => f.FollowerId == requestingUser)
-                    .Select(f => f.FollowedId)
-                    .Contains(p.UserId)),
-                _ => q
+                        .Where(f => f.FollowerId == requestingUser)
+                        .Select(f => f.FollowedId)
+                        .Contains(p.UserId)),
+
+                FeedType.User when query.TargetUserId.HasValue => q.Where(p =>
+                    p.UserId == query.TargetUserId.Value),
+
+                FeedType.User => throw new ArgumentException(
+                    "TargetUserId is required when FeedType is User."),
+
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(query.Type),
+                    query.Type,
+                    "Unsupported feed type.")
             };
-            //Cursor filter
+
+            // Cursor filter
             if (query.CursorCreatedAt is DateTime cAt && query.CursorId is Guid cId)
             {
-
                 if (cAt.Kind != DateTimeKind.Utc)
                 {
                     cAt = DateTime.SpecifyKind(cAt, DateTimeKind.Utc);
@@ -58,7 +70,7 @@ namespace TallahasseePRs.Api.Services.FeedServices
                     p.CreatedAt < cAt ||
                     (p.CreatedAt == cAt && p.Id.CompareTo(cId) < 0));
             }
-            //Order and fetch limit+1
+
             var posts = await q
                 .OrderByDescending(p => p.CreatedAt)
                 .ThenByDescending(p => p.Id)
@@ -66,42 +78,41 @@ namespace TallahasseePRs.Api.Services.FeedServices
                 .ToListAsync();
 
             var hasMore = posts.Count > limit;
-            if (hasMore) posts.RemoveAt(posts.Count - 1);
+            if (hasMore)
+            {
+                posts.RemoveAt(posts.Count - 1);
+            }
 
             var postIds = posts.Select(p => p.Id).ToList();
 
-            //Comment counts for each post
             var commentCounts = await _db.Comments.AsNoTracking()
                 .Where(c => postIds.Contains(c.PRPostId))
                 .GroupBy(c => c.PRPostId)
                 .Select(g => new { PostId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.PostId, x => x.Count);
 
-            //Current counts of votes
             var voteCounts = await _db.Votes.AsNoTracking()
                 .Where(v => postIds.Contains(v.PRPostId) && v.Value == VoteValue.Up)
                 .GroupBy(v => v.PRPostId)
                 .Select(g => new { PostId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.PostId, x => x.Count);
 
-            //Votes from user for each post if already seen
             var myVotes = await _db.Votes.AsNoTracking()
                 .Where(v => v.UserId == requestingUser && postIds.Contains(v.PRPostId))
-                .ToDictionaryAsync(v => v.PRPostId, v => v.Value); 
+                .ToDictionaryAsync(v => v.PRPostId, v => v.Value);
 
-            //Map repsonses and comment counts
             var items = new List<PostResponse>(posts.Count);
 
             foreach (var post in posts)
             {
-                // If a post has no entry in the dictionary, its count is 0
                 commentCounts.TryGetValue(post.Id, out var commentCount);
                 voteCounts.TryGetValue(post.Id, out var voteCount);
 
-                // My vote: if user hasn't voted, make it null
                 VoteValue? myVoteValue = null;
                 if (myVotes.TryGetValue(post.Id, out var v))
+                {
                     myVoteValue = v;
+                }
 
                 items.Add(new PostResponse
                 {
@@ -130,8 +141,8 @@ namespace TallahasseePRs.Api.Services.FeedServices
                 });
             }
 
-            // 5) nextCursor
             string? nextCursor = null;
+
             if (hasMore && posts.Count > 0)
             {
                 var last = posts[^1];

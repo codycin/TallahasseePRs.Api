@@ -32,7 +32,7 @@ namespace TallahasseePRs.Api.Controllers
             [FromQuery] int limit = 20,
             [FromQuery] string? cursor = null)
         {
-            var requestingUserId = _currentUser.GetUserId();
+            var requestingUserId = _currentUser.UserId;
 
             DateTime? cursorCreatedAt = null;
             Guid? cursorId = null;

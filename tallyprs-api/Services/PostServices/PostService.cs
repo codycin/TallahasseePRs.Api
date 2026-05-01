@@ -172,13 +172,19 @@ namespace TallahasseePRs.Api.Services.PostServices
         public async Task<bool> DeleteAsync(Guid userId, Guid postId, bool isAdmin)
         {
             //Fetches post and makes sure it exists
-            var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+            var post = await _db.Posts.Include(p => p.MediaItems).FirstOrDefaultAsync(p => p.Id == postId);
+            
             if (post is null) return false;
 
             //Makes sure owner is owner
             if ((post.UserId != userId) && !isAdmin)
                 throw new UnauthorizedAccessException("You do not own this post.");
 
+            //Delete media associated with it
+            foreach(var m in post.MediaItems)
+            {
+                await _mediaService.DeleteAsync(m.Id, userId);
+            }
             //Removes from database
             _db.Posts.Remove(post);
             //Save changes

@@ -10,6 +10,6 @@ namespace TallahasseePRs.Api.Services.ProfileServices
     }
     public interface IProfileQueryService
     {
-        Task<PublicProfileResponse?> GetPublicByIdAsync(Guid userId);
+        Task<PublicProfileResponse?> GetPublicByIdAsync(Guid? userId);
     }
 }
