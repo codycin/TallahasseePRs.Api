@@ -1,8 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using TallahasseePRs.Api.Common.Paging;
+using TallahasseePRs.Api.DTOs.Feed;
+using TallahasseePRs.Api.DTOs.Posts;
 using TallahasseePRs.Api.DTOs.Profiles;
 using TallahasseePRs.Api.Services;
+using TallahasseePRs.Api.Services.FeedServices;
 using TallahasseePRs.Api.Services.PostServices;
 using TallahasseePRs.Api.Services.ProfileServices;
 
@@ -14,11 +18,13 @@ namespace TallahasseePRs.Api.Controllers
     public sealed class UserProfileController : ControllerBase
     {
         private readonly IProfileService _profiles;
+        private readonly IFeedService _feedService;
         private readonly ICurrentUserService _currentUser;
-        public UserProfileController(IProfileService profiles, ICurrentUserService CurrentUser)
+        public UserProfileController(IProfileService profiles, ICurrentUserService CurrentUser, IFeedService feed)
         {
             _profiles = profiles;
             _currentUser = CurrentUser;
+            _feedService = feed;
         }
 
         [HttpGet]
@@ -27,6 +33,7 @@ namespace TallahasseePRs.Api.Controllers
             var profile = await _profiles.GetByIdAsync(_currentUser.GetUserId());
             return (profile == null) ? NotFound() : Ok(profile);
         }
+        
 
         [HttpPut]
         [EnableRateLimiting("writes")]

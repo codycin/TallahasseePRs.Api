@@ -37,7 +37,7 @@ public sealed class PostsController : ControllerBase
 
     public async Task<IActionResult> Create([FromBody] CreatePostRequest request) //Creat from JSON body, with a request
     {
-        var userId = _currentUser.GetUserId();        //Create post through post service
+        var userId = _currentUser.GetUserId();       //Create post through post service
         var created = await _posts.CreateAsync(userId, request);
 
         // 201 with location header is standard REST

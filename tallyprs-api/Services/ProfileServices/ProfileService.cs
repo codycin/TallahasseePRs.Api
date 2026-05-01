@@ -79,9 +79,9 @@ namespace TallahasseePRs.Api.Services.ProfileServices
 
         }
 
-        public async Task<PublicProfileResponse?> GetPublicByIdAsync(Guid userId)
+        public async Task<PublicProfileResponse?> GetPublicByIdAsync(Guid? userId)
         {
-            var currentUserId = _currentUser.GetUserId();
+            var currentUserId = _currentUser.UserId;
 
 
             var p = await _db.Profiles.Include(p=>p.ProfilePicture).SingleOrDefaultAsync(x => x.UserId == userId);

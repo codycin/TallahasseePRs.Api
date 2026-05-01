@@ -8,12 +8,19 @@ import { UserProfileResponse } from "@/types/profile";
 
 import { useRouter } from "next/navigation";
 
+import Feed from "@/components/Feed";
+import PostCard from "@/components/PostCard";
+import { getUserPostFeed } from "@/services/Feed/feedService";
+import type { PostResponse } from "@/types/post";
+
 export default function ProfilePage() {
   const router = useRouter();
 
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const userId = profile?.userId;
 
   useEffect(() => {
     async function loadProfile() {
@@ -143,6 +150,23 @@ export default function ProfilePage() {
             </div>
           </div>
         </section>
+        {userId && (
+          <section className="border-t border-gray-800">
+            <div className="px-4 py-3 md:px-6">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+                Posts
+              </h2>
+            </div>
+
+            <Feed<PostResponse>
+              fetchPage={(cursor) => getUserPostFeed(userId, 20, cursor)}
+              getKey={(post) => post.id}
+              renderItem={(post, { removeItem }) => (
+                <PostCard post={post} onDeleted={removeItem} />
+              )}
+            />
+          </section>
+        )}
       </div>
     </main>
   );

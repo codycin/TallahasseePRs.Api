@@ -222,6 +222,27 @@ namespace TallahasseePRs.Api.Services.Media
             var media = await _db.Media
                 .FirstOrDefaultAsync(m => m.Id == mediaId && m.OwnerId == userId, cancellationToken);
 
+            var mediaDebug = await _db.Media
+                .AsNoTracking()
+                .Where(m => m.Id == mediaId)
+                .Select(m => new
+                {
+                    m.Id,
+                    m.OwnerId,
+                    m.ObjectKey,
+                    m.ThumbnailObjectKey,
+                    m.PlaybackObjectKey,
+                    m.Status
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "DeleteAsync debug. MediaId={MediaId}, RequestUserId={UserId}, MediaOwnerId={OwnerId}, Found={Found}",
+                mediaId,
+                userId,
+                mediaDebug != null ? mediaDebug.OwnerId : null,
+                mediaDebug != null);
+
             if (media is null)
             {
                 _logger.LogWarning(

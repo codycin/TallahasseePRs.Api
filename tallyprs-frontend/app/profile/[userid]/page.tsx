@@ -10,6 +10,11 @@ import { PublicProfileResponse } from "@/types/profile";
 import { followUser, unfollowUser } from "@/services/Follow/followService";
 import { followRequest, followResponse } from "@/types/follow";
 
+import Feed from "@/components/Feed";
+import PostCard from "@/components/PostCard";
+import { getUserPostFeed } from "@/services/Feed/feedService";
+import type { PostResponse } from "@/types/post";
+
 export default function PublicProfilePage() {
   const params = useParams();
   const userId = params?.userid as string | undefined;
@@ -196,6 +201,23 @@ export default function PublicProfilePage() {
             </div>
           </div>
         </section>
+        {userId && (
+          <section className="border-t border-gray-800">
+            <div className="px-4 py-3 md:px-6">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+                Posts
+              </h2>
+            </div>
+
+            <Feed<PostResponse>
+              fetchPage={(cursor) => getUserPostFeed(userId, 20, cursor)}
+              getKey={(post) => post.id}
+              renderItem={(post, { removeItem }) => (
+                <PostCard post={post} onDeleted={removeItem} />
+              )}
+            />
+          </section>
+        )}
       </div>
     </main>
   );

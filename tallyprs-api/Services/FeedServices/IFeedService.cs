@@ -5,6 +5,6 @@ namespace TallahasseePRs.Api.Services.FeedServices
 {
     public interface IFeedService
     {
-        Task<FeedPage<PostResponse>> GetFeedAsync(FeedQuery query, Guid requestingUser);
+        Task<FeedPage<PostResponse>> GetFeedAsync(FeedQuery query, Guid? requestingUser);
     }
 }
