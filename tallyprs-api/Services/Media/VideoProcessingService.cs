@@ -68,6 +68,26 @@ namespace TallahasseePRs.Api.Services.Media
 
                 var startedAt = DateTime.UtcNow;
 
+
+                var isValidVideo = await IsValidVideoFileAsync(inputPath, cancellationToken);
+
+                if (!isValidVideo)
+                {
+                    media.Status = MediaStatus.Failed;
+                    media.ProcessingError = "Uploaded file does not contain a valid video stream.";
+                    media.UpdatedAt = DateTime.UtcNow;
+
+                    await _db.SaveChangesAsync(cancellationToken);
+
+                    _logger.LogWarning(
+                        "Video processing rejected invalid video file. MediaId={MediaId} ContentType={ContentType} FileName={FileName}",
+                        media.Id,
+                        media.ContentType,
+                        media.OriginalFileName);
+
+                    return;
+                }
+
                 _logger.LogInformation(
                     "Video processing started. MediaId={MediaId}",
                     mediaId);
@@ -128,14 +148,17 @@ namespace TallahasseePRs.Api.Services.Media
             catch (Exception ex)
             {
                 media.Status = MediaStatus.Failed;
-                media.ProcessingError = ex.Message;
+                media.ProcessingError = "Video processing failed.";
                 media.UpdatedAt = DateTime.UtcNow;
+
                 await _db.SaveChangesAsync(cancellationToken);
+
                 _logger.LogError(
                     ex,
-                    "Video processing failed. MediaId={MediaId}",
+                    "Video processing failed safely. MediaId={MediaId}",
                     mediaId);
-                throw;
+
+                return;
             }
             finally
             {
@@ -322,6 +345,7 @@ namespace TallahasseePRs.Api.Services.Media
         {
             return media.Purpose switch
             {
+
                 MediaPurpose.Post => media.PostId.HasValue
                     ? $"users/{media.OwnerId}/posts/{media.PostId.Value}/media/{media.Id}/thumbnail.jpg"
                     : $"users/{media.OwnerId}/posts/unattached/media/{media.Id}/thumbnail.jpg",
@@ -332,6 +356,43 @@ namespace TallahasseePRs.Api.Services.Media
 
                 _ => throw new InvalidOperationException("Thumbnail is only supported for post/comment media.")
             };
+        }
+        private async Task<bool> IsValidVideoFileAsync(
+    string filePath,
+    CancellationToken cancellationToken = default)
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "ffprobe",
+                Arguments = $"-v error -select_streams v:0 -show_entries stream=codec_type,codec_name -of json \"{filePath}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+
+            if (process == null)
+                return false;
+
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+
+            await process.WaitForExitAsync(cancellationToken);
+
+            if (process.ExitCode != 0)
+            {
+                _logger.LogWarning(
+                    "ffprobe failed while validating video. FilePath={FilePath} Error={Error}",
+                    filePath,
+                    error);
+
+                return false;
+            }
+
+            return output.Contains("\"codec_type\":\"video\"")
+                || output.Contains("\"codec_type\": \"video\"");
         }
 
         private sealed class VideoProbeResult

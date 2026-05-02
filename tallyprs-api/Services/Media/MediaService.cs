@@ -185,8 +185,7 @@ namespace TallahasseePRs.Api.Services.Media
                     media.Kind,
                     media.Status);
                 return ToResponse(media);
-            }
-
+            } 
             if (media.Kind == MediaKind.Video)
             {
                 media.Status = MediaStatus.Processing;
@@ -195,7 +194,6 @@ namespace TallahasseePRs.Api.Services.Media
 
                 await _db.SaveChangesAsync(cancellationToken);
                 
-                // Important: reload or process by id after save
                 await _videoProcessingService.ProcessAsync(media.Id, cancellationToken);
 
                 var updated = await _db.Media
