@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { BiDotsVerticalRounded, BiSearch, BiBell } from "react-icons/bi";
+import {
+  BiDotsVerticalRounded,
+  BiSearch,
+  BiBell,
+  BiMessage,
+} from "react-icons/bi";
 import { getUnreadNotificationCount } from "@/services/Notifications/notificationService";
 import tallyPRs_Logo from "@/public/tallyPRs_Logo.png";
 
@@ -51,10 +56,10 @@ export default function Navbar() {
       <div className="flex items-center gap-4 relative" ref={menuRef}>
         {/* Search */}
         <Link
-          href="/search"
+          href="/messages"
           className="p-2 rounded-full hover:bg-zinc-800 transition"
         >
-          <BiSearch size={22} />
+          <BiMessage size={22} />
         </Link>
         <Link
           href="/notifications"
@@ -85,6 +90,20 @@ export default function Navbar() {
               className="block px-4 py-3 text-sm hover:bg-zinc-800 transition"
             >
               Settings
+            </Link>
+            <Link
+              href="/search"
+              onClick={() => setIsOpen(false)}
+              className="block px-4 py-3 text-sm hover:bg-zinc-800 transition"
+            >
+              Search
+            </Link>
+            <Link
+              href="/about"
+              onClick={() => setIsOpen(false)}
+              className="block px-4 py-3 text-sm hover:bg-zinc-800 transition"
+            >
+              About us
             </Link>
           </div>
         )}

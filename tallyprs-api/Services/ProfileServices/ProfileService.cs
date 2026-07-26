@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client.Extensions.Msal;
 using TallahasseePRs.Api.Data;
+using TallahasseePRs.Api.DTOs.Follows;
 using TallahasseePRs.Api.DTOs.Media;
 using TallahasseePRs.Api.DTOs.Profiles;
 using TallahasseePRs.Api.Models;
@@ -98,6 +99,91 @@ namespace TallahasseePRs.Api.Services.ProfileServices
 
             return p is null ? null : ToPublicResponse(p,followerCount,followingCount, isFollowedByCur);
         }
+
+        public async Task<List<FollowUserResponse>> GetFollowingForUserAsync(Guid userId)
+        {
+            return await (
+                    from f in _db.Follows.AsNoTracking()
+                    join p in _db.Profiles.AsNoTracking()
+                        on f.FollowedId equals p.UserId
+                    where f.FollowerId == userId
+                    select new FollowUserResponse
+                    {
+                        Id = f.Id,
+                        UserId = p.UserId,
+                        DisplayName = p.DisplayName,
+                        CurrentUserFollows = true,
+                        IsMutual = _db.Follows.Any(x =>
+                            x.FollowerId == p.UserId &&
+                            x.FollowedId == userId)
+
+                    }
+                ).ToListAsync();
+        }
+        public async Task<List<FollowUserResponse>> GetFollowersForUserAsync(Guid userId)
+        {
+            return await (
+                    from f in _db.Follows.AsNoTracking()
+                    join p in _db.Profiles.AsNoTracking()
+                        on f.FollowerId equals p.UserId
+                    where f.FollowedId == userId
+                    let currentUserFollows = _db.Follows.Any(x =>
+                        x.FollowerId == userId &&
+                        x.FollowedId == p.UserId)
+                    select new FollowUserResponse
+                    {
+                        Id = f.Id,
+                        UserId = p.UserId,
+                        DisplayName = p.DisplayName,
+                        CurrentUserFollows = currentUserFollows,
+                        IsMutual = currentUserFollows
+
+                    }
+                ).ToListAsync();
+        }
+
+        public async Task<List<FollowUserResponse>> GetFollowingForOtherUserAsync(Guid userId, Guid otherUserId)
+        {
+            return await (
+                   from f in _db.Follows.AsNoTracking()
+                   join p in _db.Profiles.AsNoTracking()
+                       on f.FollowedId equals p.UserId
+                   where f.FollowerId == otherUserId
+                   select new FollowUserResponse
+                   {
+                       Id = f.Id,
+                       UserId = p.UserId,
+                       DisplayName = p.DisplayName,
+                       CurrentUserFollows = _db.Follows.Any(x=> x.FollowerId == userId && x.FollowedId == p.UserId),
+                       IsMutual = _db.Follows.Any(x =>
+                           x.FollowerId == p.UserId &&
+                           x.FollowedId == userId)
+
+                   }
+               ).ToListAsync();
+        }
+
+        public async Task<List<FollowUserResponse>> GetFollowersForOtherUserAsync(Guid userId, Guid otherUserId)
+        {
+            return await (
+                   from f in _db.Follows.AsNoTracking()
+                   join p in _db.Profiles.AsNoTracking()
+                       on f.FollowerId equals p.UserId
+                   where f.FollowedId == otherUserId
+                   
+                   select new FollowUserResponse
+                   {
+                       Id = f.Id,
+                       UserId = p.UserId,
+                       DisplayName = p.DisplayName,
+                       CurrentUserFollows = _db.Follows.Any(x => x.FollowerId == userId && x.FollowedId == p.UserId),
+                       IsMutual = _db.Follows.Any(x => x.FollowerId == p.UserId && x.FollowedId == userId)
+
+                   }
+               ).ToListAsync();
+        }
+
+
 
         private ProfileResponse ToResponse(Profile profile, int followerCount=0, int followingCount=0) => new()
         {

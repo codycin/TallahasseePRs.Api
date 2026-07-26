@@ -8,7 +8,9 @@ import {
   markNotificationRead,
 } from "@/services/Notifications/notificationService";
 import { NotificationResponse } from "@/types/notification";
-
+import { ApiError } from "@/utils/apiError";
+import { useRouter } from "next/navigation";
+import { BiLeftArrowCircle } from "react-icons/bi";
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationResponse[]>(
     [],
@@ -17,6 +19,7 @@ export default function NotificationsPage() {
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     loadNotifications();
@@ -30,9 +33,13 @@ export default function NotificationsPage() {
       const data = await getNotifications();
 
       setNotifications(data);
-    } catch (err) {
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        router.push("/login");
+        return;
+      }
       setError(
-        err instanceof Error ? err.message : "Failed to load notifications",
+        error instanceof Error ? error.message : "Failed to load notifications",
       );
     } finally {
       setLoading(false);
@@ -190,8 +197,8 @@ function NotificationCard({
               {notification.actorUsername
                 ? `@${notification.actorUsername}`
                 : "System"}
-            </span>{" "}
-            <span>{notification.message}</span>
+            </span>
+            <span> {notification.message}</span>
           </Link>
 
           <p className="mt-1 text-xs text-zinc-500">
@@ -222,7 +229,7 @@ function getNotificationHref(notification: NotificationResponse) {
   }
 
   if (notification.actorId) {
-    return `/profiles/${notification.actorId}`;
+    return `/profile/${notification.actorId}`;
   }
 
   return "/notifications";
