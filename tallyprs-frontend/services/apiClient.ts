@@ -1,9 +1,5 @@
 import { buildAuthHeader } from "@/lib/auth/token";
 import { API_BASE_URL } from "@/lib/api";
-import {
-  setAccessTokenInStorage,
-  setRefreshTokenInStorage,
-} from "@/lib/storage/authStorage";
 import { RefreshAccessToken } from "@/services/authService";
 import { ApiError } from "@/utils/apiError";
 
@@ -11,38 +7,38 @@ export async function apiFetch(
   endpoint: string,
   options: RequestInit = {},
   useRefresh: boolean = true,
+  requireAuth: boolean = true,
 ): Promise<Response> {
+  const url = `${API_BASE_URL}/api${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+
   const isFormData = options.body instanceof FormData;
 
   function buildHeaders(): HeadersInit {
-    const headers: HeadersInit = {
-      ...buildAuthHeader(),
-      ...(options.headers ?? {}),
-    };
+    const headers = new Headers(options.headers);
 
-    if (
-      !isFormData &&
-      !("Content-Type" in (headers as Record<string, string>))
-    ) {
-      (headers as Record<string, string>)["Content-Type"] = "application/json";
+    const authHeader = buildAuthHeader(requireAuth);
+
+    for (const [key, value] of Object.entries(authHeader)) {
+      headers.set(key, value);
+    }
+
+    if (!isFormData && options.body && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
     }
 
     return headers;
   }
 
-  let response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
+  let response = await fetch(url, {
     ...options,
     headers: buildHeaders(),
   });
 
-  if (response.status === 401 && useRefresh) {
+  if (response.status === 401 && requireAuth && useRefresh) {
     const refreshed = await RefreshAccessToken();
 
-    if (refreshed) {
-      setAccessTokenInStorage(refreshed.accessToken);
-      setRefreshTokenInStorage(refreshed.refreshToken);
-
-      response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
+    if (refreshed?.accessToken) {
+      response = await fetch(url, {
         ...options,
         headers: buildHeaders(),
       });
@@ -65,7 +61,7 @@ export async function apiFetch(
         message = errorBody.message;
       }
     } catch {
-      // no JSON body
+      // response body was not JSON
     }
 
     throw new ApiError(message, response.status, errorBody);

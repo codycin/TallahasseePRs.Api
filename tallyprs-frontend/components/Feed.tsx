@@ -1,6 +1,8 @@
 "use client";
 import { FeedPage } from "@/types/feed";
 import { useState, useEffect } from "react";
+import { ApiError } from "@/utils/apiError";
+import { useRouter } from "next/navigation";
 
 type FeedProps<T> = {
   fetchPage: (cursor?: string) => Promise<FeedPage<T>>;
@@ -22,6 +24,7 @@ export default function Feed<T>({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const hasMore = nextCursor !== null;
 
@@ -39,9 +42,14 @@ export default function Feed<T>({
 
         setItems(page.items);
         setNextCursor(page.nextCursor ?? null);
-      } catch (err) {
-        console.error("[Feed] loadInitial failed:", err);
-        setError(err instanceof Error ? err.message : "Failed to load feed.");
+      } catch (error) {
+        console.error("[Feed] loadInitial failed:", error);
+        if (error instanceof ApiError && error.status === 401) {
+          router.push(`/login`);
+        } else
+          setError(
+            error instanceof Error ? error.message : "Failed to load profile.",
+          );
       } finally {
         setLoading(false);
       }

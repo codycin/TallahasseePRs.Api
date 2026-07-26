@@ -11,11 +11,13 @@ using System.Text;
 using System.Threading.RateLimiting;
 using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.Data.Configurations;
+using TallahasseePRs.Api.Hubs;
 using TallahasseePRs.Api.Models;
 using TallahasseePRs.Api.Models.Users;
 using TallahasseePRs.Api.Security;
 using TallahasseePRs.Api.Seeders;
 using TallahasseePRs.Api.Services;
+using TallahasseePRs.Api.Services.Conversations;
 using TallahasseePRs.Api.Services.FeedServices;
 using TallahasseePRs.Api.Services.FollowServices;
 using TallahasseePRs.Api.Services.Media;
@@ -42,11 +44,16 @@ builder.Services.AddCors(options =>
                 "http://localhost:3001",
                 "https://tally-p-i2mvaktmj-cody-cintron-s-projects.vercel.app",
                 "https://tally-p-rs.vercel.app",
+                "https://tallyprs.com",
+                "https://www.tallyprs.com",
                 // Local phone testing
                 "http://192.168.1.43:3000"
+
             )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
+        
     });
 });
 
@@ -139,6 +146,22 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs/messages"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -189,7 +212,10 @@ else
     builder.Logging.SetMinimumLevel(LogLevel.Warning);
 }
 
+//Signal R
+builder.Services.AddSignalR();
 
+builder.Services.AddScoped<IConversationService, ConversationService>();
 
 
 
@@ -232,4 +258,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<MessageHub>("/hubs/messages");
 app.Run();

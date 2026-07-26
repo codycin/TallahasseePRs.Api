@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { BiUser, BiLeftArrowCircle, BiLoaderAlt } from "react-icons/bi";
+import {
+  BiUser,
+  BiLeftArrowCircle,
+  BiLoaderAlt,
+  BiMessageSquareDetail,
+} from "react-icons/bi";
 import { getPublicProfile } from "@/services/Profile/profile";
 import { PublicProfileResponse } from "@/types/profile";
 import { followUser, unfollowUser } from "@/services/Follow/followService";
@@ -11,13 +16,13 @@ import PostCard from "@/components/PostCard";
 import { getUserPostFeed } from "@/services/Feed/feedService";
 import type { PostResponse } from "@/types/post";
 import { useRouter } from "next/navigation";
+import { createConversation } from "@/services/Messages/messageService";
 
 export default function PublicProfilePage() {
   //Route params
   const router = useRouter();
   const params = useParams();
   const userId = params?.userid as string | undefined;
-
   const [profile, setProfile] = useState<PublicProfileResponse | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -61,6 +66,19 @@ export default function PublicProfilePage() {
 
     loadProfile();
   }, [userId]);
+  async function handleMessageClicked() {
+    if (!userId) {
+      setErrorMessage("Missing user ID.");
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const conversation = await createConversation(userId);
+      router.push(`/messages/${conversation.id}`);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   async function handleFollowToggle() {
     if (!userId || !profile || isSubmitting) return;
@@ -163,7 +181,7 @@ export default function PublicProfilePage() {
             </div>
           </div>
           {!isOwnProfile && (
-            <div className="mt-4 flex justify-center">
+            <div className="mt-4 flex items-center gap-3 justify-center">
               <button
                 onClick={handleFollowToggle}
                 disabled={isSubmitting}
@@ -182,6 +200,11 @@ export default function PublicProfilePage() {
                     ? "Following"
                     : "Follow"}
               </button>
+              <BiMessageSquareDetail
+                type="button"
+                onClick={handleMessageClicked}
+                className="rounded-full w-7 h-7"
+              />
             </div>
           )}
           <div className="grid grid-cols-2 gap-4 text-sm text-gray-400 text-center">

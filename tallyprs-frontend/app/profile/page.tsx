@@ -155,15 +155,6 @@ export default function ProfilePage() {
                 {profile?.specialtyLifts || "Not set"}
               </p>
             </div>
-
-            <div className="rounded-2xl border border-gray-800 bg-zinc-900/60 p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-400">
-                Measurements JSON
-              </p>
-              <pre className="mt-2 whitespace-pre-wrap wrap-break-words text-sm text-white">
-                {profile?.measurementsJson || "Not set"}
-              </pre>
-            </div>
           </div>
         </section>
         {userId && (
