@@ -42,7 +42,7 @@ export default function RegisterPage() {
       localStorage.setItem("email", result.user.email);
       localStorage.setItem("role", result.user.role);
 
-      router.push("/");
+      router.push("/profile/edit");
     } catch (err) {
       console.error(err);
       setError("Registration failed.");

@@ -1,10 +1,12 @@
-import { getAccessTokenFromStorage } from "../storage/authStorage";
+import { getAccessTokenFromStorage } from "@/lib/storage/authStorage";
 
 export function getAccessToken(): string | null {
   return getAccessTokenFromStorage();
 }
 
-export function buildAuthHeader(): HeadersInit {
+export function buildAuthHeader(requireAuth: boolean = true): HeadersInit {
+  if (!requireAuth) return {};
+
   const token = getAccessToken();
 
   if (!token) return {};

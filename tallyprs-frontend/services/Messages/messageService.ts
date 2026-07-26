@@ -1,10 +1,9 @@
 import { apiFetch } from "@/services/apiClient";
-import { create } from "domain";
-
-export type ConversationResponse = {
-  id: string;
-  createdAtUtc: string;
-};
+import {
+  ConversationResponse,
+  ConversationListItemResponse,
+  ConversationDetailsResponse,
+} from "@/types/message";
 
 export async function createConversation(
   otherUserId: string,
@@ -18,4 +17,26 @@ export async function createConversation(
   const createdConversation: ConversationResponse = await response.json();
 
   return createdConversation;
+}
+
+export async function getConversationsForUser(): Promise<
+  ConversationListItemResponse[]
+> {
+  const response = await apiFetch("/conversations", {
+    method: "GET",
+  });
+  const conversations: ConversationListItemResponse[] = await response.json();
+
+  return conversations;
+}
+
+export async function getDetailsForConversation(
+  conversationId: string,
+): Promise<ConversationDetailsResponse> {
+  const response = await apiFetch(`/conversations/${conversationId}`, {
+    method: "GET",
+  });
+  const details: ConversationDetailsResponse = await response.json();
+
+  return details;
 }

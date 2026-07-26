@@ -4,6 +4,7 @@ using TallahasseePRs.Api.Models.Messages;
 using TallahasseePRs.Api.Models.Notifications;
 using TallahasseePRs.Api.Models.Posts;
 using TallahasseePRs.Api.Models.Users;
+using static Amazon.S3.Util.S3EventNotification;
 
 namespace TallahasseePRs.Api.Data;
 
@@ -286,13 +287,23 @@ public class AppDbContext : DbContext
 
         //MESSAGING
         modelBuilder.Entity<ConversationParticipant>()
-        .HasKey(x => new { x.ConversationId, x.UserId });
+            .HasKey(cp => new
+            {
+                cp.ConversationId,
+                cp.UserId
+            });
 
         modelBuilder.Entity<ConversationParticipant>()
-            .HasOne(x => x.Conversation)
-            .WithMany(x => x.Participants)
-            .HasForeignKey(x => x.ConversationId);
+            .HasOne(cp => cp.Conversation)
+            .WithMany(c => c.Participants)
+            .HasForeignKey(cp => cp.ConversationId)
+            .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<ConversationParticipant>()
+            .HasOne(cp => cp.Profile)
+            .WithMany()
+            .HasForeignKey(cp => cp.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Message>()
             .HasOne(x => x.Conversation)
             .WithMany(x => x.Messages)

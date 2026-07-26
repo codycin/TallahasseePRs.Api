@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { BiUser, BiLeftArrowCircle, BiLoaderAlt } from "react-icons/bi";
+import {
+  BiUser,
+  BiLeftArrowCircle,
+  BiLoaderAlt,
+  BiMessageSquareDetail,
+} from "react-icons/bi";
 import { getPublicProfile } from "@/services/Profile/profile";
 import { PublicProfileResponse } from "@/types/profile";
 import { followUser, unfollowUser } from "@/services/Follow/followService";
@@ -18,7 +23,6 @@ export default function PublicProfilePage() {
   const router = useRouter();
   const params = useParams();
   const userId = params?.userid as string | undefined;
-
   const [profile, setProfile] = useState<PublicProfileResponse | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -155,13 +159,6 @@ export default function PublicProfilePage() {
             </h1>
           </div>
         </header>
-        <button
-          type="button"
-          onClick={handleMessageClicked}
-          className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white"
-        >
-          Message
-        </button>
 
         <section className="space-y-6 p-4 md:p-6">
           <div className="flex flex-col items-center gap-4">
@@ -184,7 +181,7 @@ export default function PublicProfilePage() {
             </div>
           </div>
           {!isOwnProfile && (
-            <div className="mt-4 flex justify-center">
+            <div className="mt-4 flex items-center gap-3 justify-center">
               <button
                 onClick={handleFollowToggle}
                 disabled={isSubmitting}
@@ -203,6 +200,11 @@ export default function PublicProfilePage() {
                     ? "Following"
                     : "Follow"}
               </button>
+              <BiMessageSquareDetail
+                type="button"
+                onClick={handleMessageClicked}
+                className="rounded-full w-7 h-7"
+              />
             </div>
           )}
           <div className="grid grid-cols-2 gap-4 text-sm text-gray-400 text-center">

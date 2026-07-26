@@ -27,10 +27,6 @@ export default function LoginPage() {
       });
 
       login(result.accessToken, result.refreshToken);
-      localStorage.setItem("currentUserId", result.user.id);
-      localStorage.setItem("username", result.user.userName);
-      localStorage.setItem("email", result.user.email);
-      localStorage.setItem("role", result.user.role);
 
       router.push("/");
     } catch (err) {

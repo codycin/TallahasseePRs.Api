@@ -14,9 +14,9 @@ namespace TallahasseePRs.Api.Hubs
     public class MessageHub : Hub
     {
         private readonly AppDbContext _db;
-        private readonly CurrentUserService _currentUser;
+        private readonly ICurrentUserService _currentUser;
 
-        public MessageHub(AppDbContext db, CurrentUserService currentUserService)
+        public MessageHub(AppDbContext db, ICurrentUserService currentUserService)
         {
             _db = db;
             _currentUser = currentUserService;

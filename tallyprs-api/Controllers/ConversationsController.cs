@@ -23,14 +23,22 @@ namespace TallahasseePRs.Api.Controllers
             _currentUser = currentUser;
         }
 
-        [HttpGet("{conversationId}/messages")]
-        public async Task<ActionResult<List<MessageResponse>>> GetMessages(Guid conversationId)
+        [HttpGet("{conversationId}")]
+        public async Task<ActionResult<ConversationDetailsResponse>> GetMessages(Guid conversationId)
         {
             var currentUserId = _currentUser.GetUserId();
 
-            return await _conversation.GetMessagesForUser(currentUserId, conversationId);
+            return Ok(await _conversation.GetConversationDetailsForUser(currentUserId, conversationId));
            
         }
+        [HttpGet]
+        public async Task<ActionResult<List<ConversationListItemResponse>>> GetConversations()
+        {
+            var currentUser = _currentUser.GetUserId();
+           
+            return Ok(await _conversation.GetConversationsForUser(currentUser));
+        }
+
         [HttpPost]
         public async Task<ActionResult<ConversationResponse>> CreateConversation(
         CreateConversationRequest request)

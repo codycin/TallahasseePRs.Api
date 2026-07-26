@@ -75,7 +75,6 @@ export async function getFollowers(
       cache: "no-store",
     });
   } else {
-    console.log("hist");
     response = await apiFetch(`/profiles/${userId}/Follower`, {
       method: "GET",
       headers: {
