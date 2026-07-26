@@ -45,10 +45,7 @@ builder.Services.AddCors(options =>
                 "https://tally-p-i2mvaktmj-cody-cintron-s-projects.vercel.app",
                 "https://tally-p-rs.vercel.app",
                 "https://tallyprs.com",
-                "https://www.tallyprs.com",
-                // Local phone testing
-                "http://192.168.1.43:3000"
-
+                "https://www.tallyprs.com"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
