@@ -11,11 +11,13 @@ using System.Text;
 using System.Threading.RateLimiting;
 using TallahasseePRs.Api.Data;
 using TallahasseePRs.Api.Data.Configurations;
+using TallahasseePRs.Api.Hubs;
 using TallahasseePRs.Api.Models;
 using TallahasseePRs.Api.Models.Users;
 using TallahasseePRs.Api.Security;
 using TallahasseePRs.Api.Seeders;
 using TallahasseePRs.Api.Services;
+using TallahasseePRs.Api.Services.Conversations;
 using TallahasseePRs.Api.Services.FeedServices;
 using TallahasseePRs.Api.Services.FollowServices;
 using TallahasseePRs.Api.Services.Media;
@@ -46,7 +48,9 @@ builder.Services.AddCors(options =>
                 "https://www.tallyprs.com"
             )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
+        
     });
 });
 
@@ -139,6 +143,22 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs/messages"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -189,11 +209,16 @@ else
     builder.Logging.SetMinimumLevel(LogLevel.Warning);
 }
 
+//Signal R
+builder.Services.AddSignalR();
 
+builder.Services.AddScoped<IConversationService, ConversationService>();
 
 
 
 var app = builder.Build();
+
+app.Logger.LogInformation("Running in {Environment} environment", app.Environment.EnvironmentName);
 
 app.UseCors("Frontend");
 app.UseRateLimiter();
@@ -222,9 +247,13 @@ if (app.Environment.IsDevelopment())
 }
 
 // Configure the HTTP request pipeline.
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<MessageHub>("/hubs/messages");
 app.Run();

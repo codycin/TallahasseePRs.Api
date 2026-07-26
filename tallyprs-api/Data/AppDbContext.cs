@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TallahasseePRs.Api.Models;
+using TallahasseePRs.Api.Models.Messages;
 using TallahasseePRs.Api.Models.Notifications;
 using TallahasseePRs.Api.Models.Posts;
 using TallahasseePRs.Api.Models.Users;
+using static Amazon.S3.Util.S3EventNotification;
 
 namespace TallahasseePRs.Api.Data;
 
@@ -20,6 +22,12 @@ public class AppDbContext : DbContext
     public DbSet<Follow> Follows => Set<Follow>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Media> Media => Set<Media>();
+
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+
+    public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
+
+    public DbSet<Message> Messages => Set<Message>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -276,6 +284,30 @@ public class AppDbContext : DbContext
         // PROFILES 
         modelBuilder.Entity<Profile>()
             .HasIndex(p => p.DisplayName);
+
+        //MESSAGING
+        modelBuilder.Entity<ConversationParticipant>()
+            .HasKey(cp => new
+            {
+                cp.ConversationId,
+                cp.UserId
+            });
+
+        modelBuilder.Entity<ConversationParticipant>()
+            .HasOne(cp => cp.Conversation)
+            .WithMany(c => c.Participants)
+            .HasForeignKey(cp => cp.ConversationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ConversationParticipant>()
+            .HasOne(cp => cp.Profile)
+            .WithMany()
+            .HasForeignKey(cp => cp.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Message>()
+            .HasOne(x => x.Conversation)
+            .WithMany(x => x.Messages)
+            .HasForeignKey(x => x.ConversationId);
 
     }
 

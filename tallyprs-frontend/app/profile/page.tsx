@@ -32,9 +32,15 @@ export default function ProfilePage() {
         setProfile(data);
       } catch (error) {
         console.error(error);
-        setErrorMessage(
-          error instanceof Error ? error.message : "Failed to load profile.",
-        );
+        if (
+          error instanceof Error &&
+          error.message === "API failed with status 401"
+        ) {
+          router.push(`/login`);
+        } else
+          setErrorMessage(
+            error instanceof Error ? error.message : "Failed to load profile.",
+          );
       } finally {
         setIsLoading(false);
       }
@@ -70,7 +76,7 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto min-h-screen w-full max-w-2xl bg-black md:my-8 md:min-h-0 md:rounded-3xl md:shadow-xl">
+      <div className="mx-auto min-h-screen w-full max-w-2xl bg-black md:min-h-0 md:rounded-3xl md:shadow-xl">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-800 bg-black px-4 py-4 md:rounded-t-3xl">
           <h1 className="text-lg font-semibold text-white">My Profile</h1>
           <button
@@ -108,9 +114,19 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
-            <div>Followers: {profile?.followCount} </div>
-            <div>Following: {profile?.followingCount} </div>
+          <div className="grid grid-cols-2 gap-4 text-sm text-gray-400 text-center">
+            <button
+              className="mx-auto w-fit rounded-md bg-blue-600 px-1 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              onClick={() => router.push("/profile/followers")}
+            >
+              Followers: {profile?.followCount}
+            </button>
+            <button
+              className="mx-auto w-fit rounded-md bg-gray-600 px-1 py-1 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              onClick={() => router.push("/profile/following")}
+            >
+              Following: {profile?.followingCount}
+            </button>
           </div>
           <div className="grid gap-4">
             <div className="rounded-2xl border border-gray-800 bg-zinc-900/60 p-4">
@@ -138,15 +154,6 @@ export default function ProfilePage() {
               <p className="mt-2 text-sm text-white">
                 {profile?.specialtyLifts || "Not set"}
               </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-800 bg-zinc-900/60 p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-400">
-                Measurements JSON
-              </p>
-              <pre className="mt-2 whitespace-pre-wrap wrap-break-words text-sm text-white">
-                {profile?.measurementsJson || "Not set"}
-              </pre>
             </div>
           </div>
         </section>

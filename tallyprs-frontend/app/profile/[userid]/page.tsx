@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { BiUser, BiLoaderAlt } from "react-icons/bi";
+import {
+  BiUser,
+  BiLeftArrowCircle,
+  BiLoaderAlt,
+  BiMessageSquareDetail,
+} from "react-icons/bi";
 import { getPublicProfile } from "@/services/Profile/profile";
 import { PublicProfileResponse } from "@/types/profile";
 import { followUser, unfollowUser } from "@/services/Follow/followService";
@@ -10,12 +15,14 @@ import Feed from "@/components/Feed";
 import PostCard from "@/components/PostCard";
 import { getUserPostFeed } from "@/services/Feed/feedService";
 import type { PostResponse } from "@/types/post";
+import { useRouter } from "next/navigation";
+import { createConversation } from "@/services/Messages/messageService";
 
 export default function PublicProfilePage() {
   //Route params
+  const router = useRouter();
   const params = useParams();
   const userId = params?.userid as string | undefined;
-
   const [profile, setProfile] = useState<PublicProfileResponse | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -51,9 +58,7 @@ export default function PublicProfilePage() {
         setIsFollowing(data.isFollowedByCurrentUser);
       } catch (error) {
         console.error("loadProfile error:", error);
-        setErrorMessage(
-          error instanceof Error ? error.message : "Failed to load profile.",
-        );
+        router.push(`/login`);
       } finally {
         setIsLoading(false);
       }
@@ -61,6 +66,19 @@ export default function PublicProfilePage() {
 
     loadProfile();
   }, [userId]);
+  async function handleMessageClicked() {
+    if (!userId) {
+      setErrorMessage("Missing user ID.");
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const conversation = await createConversation(userId);
+      router.push(`/messages/${conversation.id}`);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   async function handleFollowToggle() {
     if (!userId || !profile || isSubmitting) return;
@@ -127,11 +145,19 @@ export default function PublicProfilePage() {
 
   return (
     <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto min-h-screen w-full max-w-2xl bg-black md:my-8 md:min-h-0 md:rounded-3xl md:shadow-xl">
+      <div className="mx-auto min-h-screen w-full max-w-2xl bg-black  md:min-h-0 md:rounded-3xl md:shadow-xl">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-800 bg-black px-4 py-4 md:rounded-t-3xl">
-          <h1 className="text-lg font-semibold text-white">
-            {profile?.displayName || "No display name set"}
-          </h1>
+          <div className="flex gap-4 items-center">
+            <BiLeftArrowCircle
+              className="h-6 w-6"
+              onClick={() => {
+                router.back();
+              }}
+            />
+            <h1 className="text-lg font-semibold text-white">
+              {profile?.displayName || "No display name set"}
+            </h1>
+          </div>
         </header>
 
         <section className="space-y-6 p-4 md:p-6">
@@ -155,7 +181,7 @@ export default function PublicProfilePage() {
             </div>
           </div>
           {!isOwnProfile && (
-            <div className="mt-4 flex justify-center">
+            <div className="mt-4 flex items-center gap-3 justify-center">
               <button
                 onClick={handleFollowToggle}
                 disabled={isSubmitting}
@@ -174,11 +200,26 @@ export default function PublicProfilePage() {
                     ? "Following"
                     : "Follow"}
               </button>
+              <BiMessageSquareDetail
+                type="button"
+                onClick={handleMessageClicked}
+                className="rounded-full w-7 h-7"
+              />
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
-            <div>Followers: {profile?.followCount}</div>
-            <div>Following: {profile?.followingCount}</div>
+          <div className="grid grid-cols-2 gap-4 text-sm text-gray-400 text-center">
+            <button
+              className="mx-auto w-fit rounded-md bg-blue-600 px-1 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              onClick={() => router.push(`/profile/${userId}/followers`)}
+            >
+              Followers: {profile?.followCount}
+            </button>
+            <button
+              className="mx-auto w-fit rounded-md bg-gray-600 px-1 py-1 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              onClick={() => router.push(`/profile/${userId}/following`)}
+            >
+              Following: {profile?.followingCount}
+            </button>
           </div>
           <div className="grid gap-4">
             <div className="rounded-2xl border border-gray-800 bg-zinc-900/60 p-4">
